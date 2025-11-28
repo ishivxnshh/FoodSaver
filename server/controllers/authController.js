@@ -118,6 +118,11 @@ export const updateProfile = async (req, res) => {
     user.phone = req.body.phone || user.phone;
     user.businessName = req.body.businessName || user.businessName;
     user.businessType = req.body.businessType || user.businessType;
+    
+    // Allow role update (for OAuth users completing setup)
+    if (req.body.role && ['donor', 'receiver', 'both'].includes(req.body.role)) {
+      user.role = req.body.role;
+    }
 
     if (req.body.address) {
       user.address = { ...user.address, ...req.body.address };
@@ -154,8 +159,16 @@ export const updateProfile = async (req, res) => {
 // @access  Public
 export const googleCallback = (req, res) => {
   const token = generateToken(req.user._id);
-  // Redirect to frontend with token
-  res.redirect(`${process.env.CLIENT_URL}/auth/success?token=${token}`);
+  const user = req.user;
+  
+  // Check if this is a new user (just created via OAuth)
+  // New OAuth users need to complete their profile with role selection
+  if (user._isNewUser || (user.role === 'both' && !user.businessName && !user.phone)) {
+    res.redirect(`${process.env.CLIENT_URL}/auth/success?token=${token}&setup=true`);
+  } else {
+    // Existing user or already set up
+    res.redirect(`${process.env.CLIENT_URL}/auth/success?token=${token}`);
+  }
 };
 
 // @desc    GitHub OAuth callback
@@ -163,7 +176,15 @@ export const googleCallback = (req, res) => {
 // @access  Public
 export const githubCallback = (req, res) => {
   const token = generateToken(req.user._id);
-  // Redirect to frontend with token
-  res.redirect(`${process.env.CLIENT_URL}/auth/success?token=${token}`);
+  const user = req.user;
+  
+  // Check if this is a new user (just created via OAuth)
+  // New OAuth users need to complete their profile with role selection
+  if (user._isNewUser || (user.role === 'both' && !user.businessName && !user.phone)) {
+    res.redirect(`${process.env.CLIENT_URL}/auth/success?token=${token}&setup=true`);
+  } else {
+    // Existing user or already set up
+    res.redirect(`${process.env.CLIENT_URL}/auth/success?token=${token}`);
+  }
 };
 

@@ -1,3 +1,6 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import passport from 'passport';
 import { Strategy as JwtStrategy, ExtractJwt } from 'passport-jwt';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
@@ -9,6 +12,11 @@ const jwtOptions = {
   jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
   secretOrKey: process.env.JWT_SECRET,
 };
+
+// Validate JWT_SECRET is set
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET is required. Please set it in your .env file.');
+}
 
 passport.use(
   new JwtStrategy(jwtOptions, async (payload, done) => {
@@ -37,9 +45,11 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
         try {
           // Check if user exists
           let user = await User.findOne({ googleId: profile.id });
+          let isNewUser = false;
 
           if (!user) {
             // Create new user
+            isNewUser = true;
             user = await User.create({
               googleId: profile.id,
               email: profile.emails[0].value,
@@ -49,6 +59,8 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
             });
           }
 
+          // Attach flag to user object for callback handler
+          user._isNewUser = isNewUser;
           return done(null, user);
         } catch (error) {
           return done(error, false);
@@ -72,9 +84,11 @@ if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
         try {
           // Check if user exists
           let user = await User.findOne({ githubId: profile.id });
+          let isNewUser = false;
 
           if (!user) {
             // Create new user
+            isNewUser = true;
             user = await User.create({
               githubId: profile.id,
               email: profile.emails?.[0]?.value || `${profile.username}@github.placeholder`,
@@ -84,6 +98,8 @@ if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
             });
           }
 
+          // Attach flag to user object for callback handler
+          user._isNewUser = isNewUser;
           return done(null, user);
         } catch (error) {
           return done(error, false);

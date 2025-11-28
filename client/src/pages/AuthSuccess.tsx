@@ -6,15 +6,21 @@ import { Loader2 } from 'lucide-react';
 export default function AuthSuccess() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { fetchMe } = useAuthStore();
+  const { fetchMe, user } = useAuthStore();
 
   useEffect(() => {
     const token = searchParams.get('token');
+    const needsSetup = searchParams.get('setup') === 'true';
 
     if (token) {
       localStorage.setItem('token', token);
       fetchMe().then(() => {
-        navigate('/dashboard');
+        // If setup flag is present, redirect to role selection
+        if (needsSetup) {
+          navigate('/auth/complete-profile');
+        } else {
+          navigate('/dashboard');
+        }
       });
     } else {
       navigate('/login');

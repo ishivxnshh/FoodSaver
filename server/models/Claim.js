@@ -67,7 +67,7 @@ const claimSchema = new mongoose.Schema(
 claimSchema.index({ claimer: 1, createdAt: -1 });
 claimSchema.index({ donor: 1, createdAt: -1 });
 claimSchema.index({ foodListing: 1 });
-claimSchema.index({ qrCode: 1 });
+// qrCode index is automatically created by unique: true, no need to duplicate
 claimSchema.index({ status: 1, pickupTime: 1 });
 
 const Claim = mongoose.model('Claim', claimSchema);

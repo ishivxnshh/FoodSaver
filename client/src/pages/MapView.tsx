@@ -1,12 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, Package, X } from 'lucide-react';
-import mapboxgl from 'mapbox-gl';
 import api from '../lib/api';
 import toast from 'react-hot-toast';
-import 'mapbox-gl/dist/mapbox-gl.css';
 
-mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN || '';
+declare global {
+  interface Window {
+    google: any;
+    initMap: () => void;
+  }
+}
 
 interface FoodListing {
   _id: string;
@@ -27,58 +30,100 @@ interface FoodListing {
 export default function MapView() {
   const navigate = useNavigate();
   const mapContainer = useRef<HTMLDivElement>(null);
-  const map = useRef<mapboxgl.Map | null>(null);
+  const map = useRef<google.maps.Map | null>(null);
+  const markers = useRef<google.maps.Marker[]>([]);
   const [listings, setListings] = useState<FoodListing[]>([]);
   const [selectedListing, setSelectedListing] = useState<FoodListing | null>(null);
-  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [mapLoaded, setMapLoaded] = useState(false);
 
+  const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
+
+  // Load Google Maps script
   useEffect(() => {
-    // Get user location
+    if (window.google) {
+      setMapLoaded(true);
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places&callback=initMap`;
+    script.async = true;
+    script.defer = true;
+    window.initMap = () => {
+      setMapLoaded(true);
+    };
+    document.head.appendChild(script);
+
+    return () => {
+      const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
+      if (existingScript) {
+        existingScript.remove();
+      }
+    };
+  }, [GOOGLE_MAPS_API_KEY]);
+
+  // Get user location
+  useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          setUserLocation([position.coords.longitude, position.coords.latitude]);
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          });
         },
         (error) => {
           console.error('Error getting location:', error);
-          // Default to New York
-          setUserLocation([-73.935242, 40.730610]);
+          // Default to Delhi, India
+          setUserLocation({ lat: 28.6139, lng: 77.2090 });
         }
       );
     } else {
-      setUserLocation([-73.935242, 40.730610]);
+      setUserLocation({ lat: 28.6139, lng: 77.2090 });
     }
   }, []);
 
+  // Initialize map
   useEffect(() => {
-    if (!mapContainer.current || !userLocation) return;
+    if (!mapLoaded || !mapContainer.current || !userLocation || !window.google) return;
 
     // Initialize map
-    map.current = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/dark-v11',
+    map.current = new google.maps.Map(mapContainer.current, {
       center: userLocation,
       zoom: 12,
+      mapTypeControl: false,
+      fullscreenControl: true,
+      streetViewControl: false,
     });
 
-    // Add navigation controls
-    map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
-
     // Add user location marker
-    new mapboxgl.Marker({ color: '#10b981' })
-      .setLngLat(userLocation)
-      .setPopup(new mapboxgl.Popup().setHTML('<p>You are here</p>'))
-      .addTo(map.current);
+    new google.maps.Marker({
+      position: userLocation,
+      map: map.current,
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 8,
+        fillColor: '#10b981',
+        fillOpacity: 1,
+        strokeColor: '#ffffff',
+        strokeWeight: 2,
+      },
+      title: 'You are here',
+    });
 
     // Fetch listings
     fetchListings();
 
     return () => {
+      // Clean up markers
+      markers.current.forEach((marker) => marker.setMap(null));
+      markers.current = [];
       if (map.current) {
-        map.current.remove();
+        map.current = null;
       }
     };
-  }, [userLocation]);
+  }, [mapLoaded, userLocation]);
 
   const fetchListings = async () => {
     try {
@@ -86,31 +131,41 @@ export default function MapView() {
         params: { status: 'available' },
       });
       setListings(response.data.listings);
-      
+
+      // Clear existing markers
+      markers.current.forEach((marker) => marker.setMap(null));
+      markers.current = [];
+
       // Add markers for each listing
       response.data.listings.forEach((listing: FoodListing) => {
         if (map.current && listing.location.coordinates) {
-          const el = document.createElement('div');
-          el.className = 'custom-marker';
-          el.style.width = '40px';
-          el.style.height = '40px';
-          el.style.borderRadius = '50%';
-          el.style.backgroundColor = '#14b8a6';
-          el.style.border = '3px solid white';
-          el.style.cursor = 'pointer';
-          el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
+          const [lng, lat] = listing.location.coordinates;
 
-          const marker = new mapboxgl.Marker(el)
-            .setLngLat(listing.location.coordinates as [number, number])
-            .addTo(map.current);
+          // Create custom marker icon
+          const markerIcon = {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 10,
+            fillColor: '#14b8a6',
+            fillOpacity: 1,
+            strokeColor: '#ffffff',
+            strokeWeight: 3,
+          };
 
-          el.addEventListener('click', () => {
-            setSelectedListing(listing);
-            map.current?.flyTo({
-              center: listing.location.coordinates as [number, number],
-              zoom: 14,
-            });
+          const marker = new google.maps.Marker({
+            position: { lat, lng },
+            map: map.current,
+            icon: markerIcon,
+            title: listing.title,
           });
+
+          // Add click listener
+          marker.addListener('click', () => {
+            setSelectedListing(listing);
+            map.current?.setCenter({ lat, lng });
+            map.current?.setZoom(14);
+          });
+
+          markers.current.push(marker);
         }
       });
     } catch (error) {
@@ -141,7 +196,15 @@ export default function MapView() {
 
       {/* Map Container */}
       <div className="flex-1 relative">
-        <div ref={mapContainer} className="w-full h-full" />
+        {!GOOGLE_MAPS_API_KEY ? (
+          <div className="w-full h-full flex items-center justify-center bg-slate-900">
+            <p className="text-red-400 text-center px-4">
+              Google Maps API key is missing. Please set VITE_GOOGLE_MAPS_API_KEY in your .env file
+            </p>
+          </div>
+        ) : (
+          <div ref={mapContainer} className="w-full h-full" />
+        )}
 
         {/* Selected Listing Card */}
         {selectedListing && (
@@ -198,4 +261,3 @@ export default function MapView() {
     </div>
   );
 }
-

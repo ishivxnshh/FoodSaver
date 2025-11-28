@@ -10,6 +10,7 @@ import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import AuthSuccess from './pages/AuthSuccess';
+import CompleteProfile from './pages/CompleteProfile';
 import Dashboard from './pages/Dashboard';
 import Notifications from './pages/Notifications';
 import MapView from './pages/MapView';
@@ -68,6 +69,14 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/auth/success" element={<AuthSuccess />} />
+        <Route
+          path="/auth/complete-profile"
+          element={
+            <ProtectedRoute>
+              <CompleteProfile />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Protected Routes */}
         <Route

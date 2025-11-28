@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Upload, X, Plus, MapPin } from 'lucide-react';
+import { Upload, X } from 'lucide-react';
 import api from '../../lib/api';
 import toast from 'react-hot-toast';
+import LocationPicker from '../../components/LocationPicker';
 
 export default function CreateListing() {
   const navigate = useNavigate();
@@ -255,55 +256,23 @@ export default function CreateListing() {
               </div>
             </div>
 
-            {/* Address */}
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                Pickup Address *
-              </label>
-              <input
-                type="text"
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-white"
-                placeholder="Full address for pickup"
-              />
-            </div>
-
-            {/* Coordinates */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Longitude *
-                </label>
-                <input
-                  type="number"
-                  name="longitude"
-                  value={formData.longitude}
-                  onChange={handleChange}
-                  required
-                  step="any"
-                  className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-white"
-                  placeholder="-73.935242"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Latitude *
-                </label>
-                <input
-                  type="number"
-                  name="latitude"
-                  value={formData.latitude}
-                  onChange={handleChange}
-                  required
-                  step="any"
-                  className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-white"
-                  placeholder="40.730610"
-                />
-              </div>
-            </div>
+            {/* Location Picker */}
+            <LocationPicker
+              onLocationSelect={(location) => {
+                setFormData({
+                  ...formData,
+                  address: location.address,
+                  longitude: location.longitude.toString(),
+                  latitude: location.latitude.toString(),
+                });
+              }}
+              initialAddress={formData.address}
+              initialCoordinates={
+                formData.longitude && formData.latitude
+                  ? [parseFloat(formData.longitude), parseFloat(formData.latitude)]
+                  : undefined
+              }
+            />
 
             {/* Expires At */}
             <div>
