@@ -1,12 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { MapPin, Search } from 'lucide-react';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
-declare global {
-  interface Window {
-    google: any;
-    initMap: () => void;
-  }
-}
+// Fix for default marker icon in Leaflet
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
 
 interface LocationPickerProps {
   onLocationSelect: (location: {
@@ -24,67 +27,38 @@ export default function LocationPicker({
   initialCoordinates,
 }: LocationPickerProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
-  const map = useRef<google.maps.Map | null>(null);
-  const marker = useRef<google.maps.Marker | null>(null);
-  const autocomplete = useRef<google.maps.places.Autocomplete | null>(null);
-  const geocoder = useRef<google.maps.Geocoder | null>(null);
+  const map = useRef<L.Map | null>(null);
+  const marker = useRef<L.Marker | null>(null);
   const [searchQuery, setSearchQuery] = useState(initialAddress);
   const [isMapVisible, setIsMapVisible] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const placesService = useRef<google.maps.places.PlacesService | null>(null);
-  const autocompleteService = useRef<google.maps.places.AutocompleteService | null>(null);
 
-  const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
-
-  // Load Google Maps script
-  useEffect(() => {
-    if (window.google) return;
-
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places,geocoding&callback=initMap`;
-    script.async = true;
-    script.defer = true;
-    window.initMap = () => {
-      // Script loaded
-    };
-    document.head.appendChild(script);
-
-    return () => {
-      const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
-      if (existingScript) {
-        existingScript.remove();
-      }
-    };
-  }, [GOOGLE_MAPS_API_KEY]);
+  const GEOAPIFY_API_KEY = import.meta.env.VITE_GEOAPIFY_API_KEY || '';
 
   // Fetch suggestions as user types
   const fetchSuggestions = async (query: string) => {
-    if (!query.trim() || query.length < 2 || !window.google || !autocompleteService.current) {
+    if (!query.trim() || query.length < 2 || !GEOAPIFY_API_KEY) {
       setSuggestions([]);
       setShowSuggestions(false);
       return;
     }
 
     try {
-      autocompleteService.current.getPlacePredictions(
-        {
-          input: query,
-          componentRestrictions: { country: 'in' }, // Focus on India
-          types: ['establishment', 'geocode'], // Include businesses and addresses
-        },
-        (predictions: google.maps.places.AutocompletePrediction[] | null, status: google.maps.places.PlacesServiceStatus) => {
-          if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
-            setSuggestions(predictions);
-            setShowSuggestions(true);
-          } else {
-            setSuggestions([]);
-            setShowSuggestions(false);
-          }
-        }
+      const response = await fetch(
+        `https://api.geoapify.com/v1/geocode/autocomplete?text=${encodeURIComponent(query)}&apiKey=${GEOAPIFY_API_KEY}&limit=5&filter=countrycode:in`
       );
+      const data = await response.json();
+
+      if (data.features && data.features.length > 0) {
+        setSuggestions(data.features);
+        setShowSuggestions(true);
+      } else {
+        setSuggestions([]);
+        setShowSuggestions(false);
+      }
     } catch (error) {
       console.error('Suggestions error:', error);
       setSuggestions([]);
@@ -94,138 +68,126 @@ export default function LocationPicker({
 
   const handleSearch = async (query?: string) => {
     const searchTerm = query || searchQuery;
-    if (!searchTerm.trim() || !window.google || !geocoder.current) return;
+    if (!searchTerm.trim() || !GEOAPIFY_API_KEY) return;
 
     setIsSearching(true);
     setShowSuggestions(false);
     try {
-      geocoder.current.geocode(
-        {
-          address: searchTerm,
-          componentRestrictions: { country: 'in' },
-        },
-        (results: google.maps.GeocoderResult[] | null, status: google.maps.GeocoderStatus) => {
-          if (status === google.maps.GeocoderStatus.OK && results && results.length > 0) {
-            const result = results[0];
-            const location = result.geometry.location;
-            const lat = location.lat();
-            const lng = location.lng();
-            const address = result.formatted_address || searchTerm;
-
-            // Update form data
-            onLocationSelect({
-              address,
-              longitude: lng,
-              latitude: lat,
-            });
-
-            // Update marker if map is visible
-            if (map.current) {
-              if (marker.current) {
-                marker.current.setPosition({ lat, lng });
-              } else {
-                marker.current = new google.maps.Marker({
-                  position: { lat, lng },
-                  map: map.current,
-                  draggable: true,
-                  icon: {
-                    path: google.maps.SymbolPath.CIRCLE,
-                    scale: 8,
-                    fillColor: '#10b981',
-                    fillOpacity: 1,
-                    strokeColor: '#ffffff',
-                    strokeWeight: 2,
-                  },
-                });
-
-                // Handle marker drag
-                marker.current.addListener('dragend', () => {
-                  const position = marker.current!.getPosition();
-                  if (position) {
-                    const dragLat = position.lat();
-                    const dragLng = position.lng();
-
-                    // Reverse geocode
-                    geocoder.current!.geocode(
-                      { location: { lat: dragLat, lng: dragLng } },
-                      (results: google.maps.GeocoderResult[] | null) => {
-                        if (results && results.length > 0) {
-                          const address = results[0].formatted_address;
-                          setSearchQuery(address);
-                          onLocationSelect({
-                            address,
-                            longitude: dragLng,
-                            latitude: dragLat,
-                          });
-                        }
-                      }
-                    );
-                  }
-                });
-              }
-
-              // Center map on location
-              map.current.setCenter({ lat, lng });
-              map.current.setZoom(14);
-            } else {
-              // If map is not visible, show it
-              setIsMapVisible(true);
-            }
-          } else {
-            // Try without country restriction
-            geocoder.current.geocode(
-              { address: searchTerm },
-              (results: google.maps.GeocoderResult[] | null, status: google.maps.GeocoderStatus) => {
-                if (status === google.maps.GeocoderStatus.OK && results && results.length > 0) {
-                  const result = results[0];
-                  const location = result.geometry.location;
-                  const lat = location.lat();
-                  const lng = location.lng();
-                  const address = result.formatted_address || searchTerm;
-
-                  onLocationSelect({
-                    address,
-                    longitude: lng,
-                    latitude: lat,
-                  });
-
-                  if (map.current) {
-                    if (marker.current) {
-                      marker.current.setPosition({ lat, lng });
-                    } else {
-                      marker.current = new google.maps.Marker({
-                        position: { lat, lng },
-                        map: map.current,
-                        draggable: true,
-                        icon: {
-                          path: google.maps.SymbolPath.CIRCLE,
-                          scale: 8,
-                          fillColor: '#10b981',
-                          fillOpacity: 1,
-                          strokeColor: '#ffffff',
-                          strokeWeight: 2,
-                        },
-                      });
-                    }
-                    map.current.setCenter({ lat, lng });
-                    map.current.setZoom(14);
-                  } else {
-                    setIsMapVisible(true);
-                  }
-                } else {
-                  alert('Location not found. Please try a different search term or click on the map to set location.');
-                }
-                setIsSearching(false);
-              }
-            );
-            return;
-          }
-          setIsSearching(false);
-        }
+      const response = await fetch(
+        `https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(searchTerm)}&apiKey=${GEOAPIFY_API_KEY}&limit=1&filter=countrycode:in`
       );
+      const data = await response.json();
+
+      if (data.features && data.features.length > 0) {
+        const feature = data.features[0];
+        const [lng, lat] = feature.geometry.coordinates;
+        const address = feature.properties.formatted || feature.properties.name || searchTerm;
+
+        // Update form data
+        onLocationSelect({
+          address,
+          longitude: lng,
+          latitude: lat,
+        });
+
+        // Update marker if map is visible
+        if (map.current) {
+          const latlng = L.latLng(lat, lng);
+          if (marker.current) {
+            marker.current.setLatLng(latlng);
+          } else {
+            marker.current = L.marker(latlng, {
+              draggable: true,
+              icon: L.icon({
+                iconUrl: 'data:image/svg+xml;base64,' + btoa(`
+                  <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="16" cy="16" r="12" fill="#10b981" stroke="#ffffff" stroke-width="3"/>
+                  </svg>
+                `),
+                iconSize: [32, 32],
+                iconAnchor: [16, 16],
+              }),
+            }).addTo(map.current);
+
+            // Handle marker drag
+            marker.current.on('dragend', () => {
+              const position = marker.current!.getLatLng();
+              const dragLat = position.lat;
+              const dragLng = position.lng;
+
+              // Reverse geocode
+              fetch(
+                `https://api.geoapify.com/v1/geocode/reverse?lat=${dragLat}&lon=${dragLng}&apiKey=${GEOAPIFY_API_KEY}`
+              )
+                .then((res) => res.json())
+                .then((data) => {
+                  if (data.features && data.features.length > 0) {
+                    const address = data.features[0].properties.formatted || `${dragLat.toFixed(6)}, ${dragLng.toFixed(6)}`;
+                    setSearchQuery(address);
+                    onLocationSelect({
+                      address,
+                      longitude: dragLng,
+                      latitude: dragLat,
+                    });
+                  }
+                });
+            });
+          }
+
+          // Center map on location
+          map.current.setView(latlng, 14);
+        } else {
+          // If map is not visible, show it
+          setIsMapVisible(true);
+        }
+      } else {
+        // Try without country filter
+        const fallbackResponse = await fetch(
+          `https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(searchTerm)}&apiKey=${GEOAPIFY_API_KEY}&limit=1`
+        );
+        const fallbackData = await fallbackResponse.json();
+
+        if (fallbackData.features && fallbackData.features.length > 0) {
+          const feature = fallbackData.features[0];
+          const [lng, lat] = feature.geometry.coordinates;
+          const address = feature.properties.formatted || feature.properties.name || searchTerm;
+
+          onLocationSelect({
+            address,
+            longitude: lng,
+            latitude: lat,
+          });
+
+          if (map.current) {
+            const latlng = L.latLng(lat, lng);
+            if (marker.current) {
+              marker.current.setLatLng(latlng);
+            } else {
+              marker.current = L.marker(latlng, {
+                draggable: true,
+                icon: L.icon({
+                  iconUrl: 'data:image/svg+xml;base64,' + btoa(`
+                    <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="16" cy="16" r="12" fill="#10b981" stroke="#ffffff" stroke-width="3"/>
+                    </svg>
+                  `),
+                  iconSize: [32, 32],
+                  iconAnchor: [16, 16],
+                }),
+              }).addTo(map.current);
+            }
+            map.current.setView(latlng, 14);
+          } else {
+            setIsMapVisible(true);
+          }
+        } else {
+          alert('Location not found. Please try a different search term or click on the map to set location.');
+        }
+      }
     } catch (error) {
       console.error('Search error:', error);
       alert('Failed to search location. Please try again or click on the map to set location.');
+    } finally {
       setIsSearching(false);
     }
   };
@@ -241,7 +203,7 @@ export default function LocationPicker({
     }
 
     // Debounce suggestions
-    if (value.trim().length >= 2 && window.google) {
+    if (value.trim().length >= 2) {
       searchTimeoutRef.current = setTimeout(() => {
         fetchSuggestions(value);
       }, 300);
@@ -256,157 +218,71 @@ export default function LocationPicker({
     if (!isMapVisible) {
       // Clean up if map is hidden
       if (marker.current) {
-        marker.current.setMap(null);
+        marker.current.remove();
         marker.current = null;
       }
       if (map.current) {
+        map.current.remove();
         map.current = null;
       }
       return;
     }
 
-    // Wait for Google Maps to load
-    if (!window.google || !mapContainer.current) {
-      const checkGoogle = setInterval(() => {
-        if (window.google && mapContainer.current) {
-          clearInterval(checkGoogle);
-          initializeMap();
-        }
-      }, 100);
-
-      return () => clearInterval(checkGoogle);
-    }
-
-    initializeMap();
-
-    function initializeMap() {
-      if (!mapContainer.current || !window.google || map.current) return;
+    // Wait for DOM to be ready
+    const timer = setTimeout(() => {
+      if (!mapContainer.current || !GEOAPIFY_API_KEY || map.current) return;
 
       // Default center (Delhi, India)
       const defaultCenter = initialCoordinates
-        ? { lat: initialCoordinates[1], lng: initialCoordinates[0] }
-        : { lat: 28.6139, lng: 77.2090 };
+        ? L.latLng(initialCoordinates[1], initialCoordinates[0])
+        : L.latLng(28.6139, 77.2090);
 
-      // Initialize map
-      map.current = new google.maps.Map(mapContainer.current, {
+      // Initialize map with Geoapify tiles
+      map.current = L.map(mapContainer.current, {
         center: defaultCenter,
         zoom: initialCoordinates ? 14 : 10,
-        mapTypeControl: false,
-        fullscreenControl: true,
-        streetViewControl: false,
-        styles: [
-          {
-            featureType: 'all',
-            elementType: 'labels',
-            stylers: [{ visibility: 'on' }],
-          },
-          {
-            featureType: 'poi',
-            elementType: 'labels',
-            stylers: [{ visibility: 'on' }],
-          },
-        ],
       });
 
-      // Initialize geocoder
-      geocoder.current = new google.maps.Geocoder();
-      autocompleteService.current = new google.maps.places.AutocompleteService();
-      placesService.current = new google.maps.places.PlacesService(map.current);
+      // Add Geoapify tile layer
+      L.tileLayer(`https://maps.geoapify.com/v1/tile/dark-matter/{z}/{x}/{y}.png?apiKey=${GEOAPIFY_API_KEY}`, {
+        attribution: 'Powered by <a href="https://www.geoapify.com/" target="_blank">Geoapify</a>',
+        maxZoom: 20,
+      }).addTo(map.current);
 
       // Handle map click
-      map.current.addListener('click', (e: google.maps.MapMouseEvent) => {
-        if (e.latLng) {
-          const lat = e.latLng.lat();
-          const lng = e.latLng.lng();
+      map.current.on('click', (e: L.LeafletMouseEvent) => {
+        const { lat, lng } = e.latlng;
 
-          // Update marker
-          if (marker.current) {
-            marker.current.setPosition({ lat, lng });
-          } else {
-            marker.current = new google.maps.Marker({
-              position: { lat, lng },
-              map: map.current,
-              draggable: true,
-              icon: {
-                path: google.maps.SymbolPath.CIRCLE,
-                scale: 8,
-                fillColor: '#10b981',
-                fillOpacity: 1,
-                strokeColor: '#ffffff',
-                strokeWeight: 2,
-              },
-            });
+        // Update marker
+        if (marker.current) {
+          marker.current.setLatLng([lat, lng]);
+        } else {
+          marker.current = L.marker([lat, lng], {
+            draggable: true,
+            icon: L.icon({
+              iconUrl: 'data:image/svg+xml;base64,' + btoa(`
+                <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="16" cy="16" r="12" fill="#10b981" stroke="#ffffff" stroke-width="3"/>
+                </svg>
+              `),
+              iconSize: [32, 32],
+              iconAnchor: [16, 16],
+            }),
+          }).addTo(map.current);
 
-            // Handle marker drag
-            marker.current.addListener('dragend', () => {
-              const position = marker.current!.getPosition();
-              if (position) {
-                const dragLat = position.lat();
-                const dragLng = position.lng();
+          // Handle marker drag
+          marker.current.on('dragend', () => {
+            const position = marker.current!.getLatLng();
+            const dragLat = position.lat;
+            const dragLng = position.lng;
 
-                geocoder.current!.geocode(
-                  { location: { lat: dragLat, lng: dragLng } },
-                  (results: google.maps.GeocoderResult[] | null) => {
-                    if (results && results.length > 0) {
-                      const address = results[0].formatted_address;
-                      setSearchQuery(address);
-                      onLocationSelect({
-                        address,
-                        longitude: dragLng,
-                        latitude: dragLat,
-                      });
-                    }
-                  }
-                );
-              }
-            });
-          }
-
-          // Reverse geocode
-          geocoder.current!.geocode(
-            { location: { lat, lng } },
-            (results: google.maps.GeocoderResult[] | null) => {
-              if (results && results.length > 0) {
-                const address = results[0].formatted_address;
-                setSearchQuery(address);
-                onLocationSelect({
-                  address,
-                  longitude: lng,
-                  latitude: lat,
-                });
-              }
-            }
-          );
-        }
-      });
-
-      // If initial coordinates provided, set marker
-      if (initialCoordinates) {
-        marker.current = new google.maps.Marker({
-          position: { lat: initialCoordinates[1], lng: initialCoordinates[0] },
-          map: map.current,
-          draggable: true,
-          icon: {
-            path: google.maps.SymbolPath.CIRCLE,
-            scale: 8,
-            fillColor: '#10b981',
-            fillOpacity: 1,
-            strokeColor: '#ffffff',
-            strokeWeight: 2,
-          },
-        });
-
-        marker.current.addListener('dragend', () => {
-          const position = marker.current!.getPosition();
-          if (position) {
-            const dragLat = position.lat();
-            const dragLng = position.lng();
-
-            geocoder.current!.geocode(
-              { location: { lat: dragLat, lng: dragLng } },
-              (results: google.maps.GeocoderResult[] | null) => {
-                if (results && results.length > 0) {
-                  const address = results[0].formatted_address;
+            fetch(
+              `https://api.geoapify.com/v1/geocode/reverse?lat=${dragLat}&lon=${dragLng}&apiKey=${GEOAPIFY_API_KEY}`
+            )
+              .then((res) => res.json())
+              .then((data) => {
+                if (data.features && data.features.length > 0) {
+                  const address = data.features[0].properties.formatted || `${dragLat.toFixed(6)}, ${dragLng.toFixed(6)}`;
                   setSearchQuery(address);
                   onLocationSelect({
                     address,
@@ -414,9 +290,73 @@ export default function LocationPicker({
                     latitude: dragLat,
                   });
                 }
+              });
+          });
+        }
+
+        // Reverse geocode
+        fetch(
+          `https://api.geoapify.com/v1/geocode/reverse?lat=${lat}&lon=${lng}&apiKey=${GEOAPIFY_API_KEY}`
+        )
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.features && data.features.length > 0) {
+              const address = data.features[0].properties.formatted || `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+              setSearchQuery(address);
+              onLocationSelect({
+                address,
+                longitude: lng,
+                latitude: lat,
+              });
+            }
+          })
+          .catch((error) => {
+            console.error('Reverse geocoding error:', error);
+            const address = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+            setSearchQuery(address);
+            onLocationSelect({
+              address,
+              longitude: lng,
+              latitude: lat,
+            });
+          });
+      });
+
+      // If initial coordinates provided, set marker
+      if (initialCoordinates) {
+        marker.current = L.marker([initialCoordinates[1], initialCoordinates[0]], {
+          draggable: true,
+          icon: L.icon({
+            iconUrl: 'data:image/svg+xml;base64,' + btoa(`
+              <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="16" cy="16" r="12" fill="#10b981" stroke="#ffffff" stroke-width="3"/>
+              </svg>
+            `),
+            iconSize: [32, 32],
+            iconAnchor: [16, 16],
+          }),
+        }).addTo(map.current);
+
+        marker.current.on('dragend', () => {
+          const position = marker.current!.getLatLng();
+          const dragLat = position.lat;
+          const dragLng = position.lng;
+
+          fetch(
+            `https://api.geoapify.com/v1/geocode/reverse?lat=${dragLat}&lon=${dragLng}&apiKey=${GEOAPIFY_API_KEY}`
+          )
+            .then((res) => res.json())
+            .then((data) => {
+              if (data.features && data.features.length > 0) {
+                const address = data.features[0].properties.formatted || `${dragLat.toFixed(6)}, ${dragLng.toFixed(6)}`;
+                setSearchQuery(address);
+                onLocationSelect({
+                  address,
+                  longitude: dragLng,
+                  latitude: dragLat,
+                });
               }
-            );
-          }
+            });
         });
       }
 
@@ -425,26 +365,27 @@ export default function LocationPicker({
         navigator.geolocation.getCurrentPosition(
           (position) => {
             const { latitude, longitude } = position.coords;
-            map.current?.setCenter({ lat: latitude, lng: longitude });
-            map.current?.setZoom(12);
+            map.current?.setView([latitude, longitude], 12);
           },
           () => {
             // Error getting location, use default
           }
         );
       }
-    }
+    }, 100);
 
     return () => {
+      clearTimeout(timer);
       if (marker.current) {
-        marker.current.setMap(null);
+        marker.current.remove();
         marker.current = null;
       }
       if (map.current) {
+        map.current.remove();
         map.current = null;
       }
     };
-  }, [isMapVisible, initialCoordinates, onLocationSelect]);
+  }, [isMapVisible, initialCoordinates, onLocationSelect, GEOAPIFY_API_KEY]);
 
   // Cleanup search timeout
   useEffect(() => {
@@ -525,18 +466,19 @@ export default function LocationPicker({
                 key={index}
                 type="button"
                 onClick={() => {
-                  setSearchQuery(suggestion.description);
+                  const address = suggestion.properties.formatted || suggestion.properties.name;
+                  setSearchQuery(address);
                   setShowSuggestions(false);
-                  handleSearch(suggestion.description);
+                  handleSearch(address);
                 }}
                 className="w-full text-left px-4 py-3 hover:bg-slate-700 transition-colors border-b border-slate-700 last:border-b-0"
               >
-                <div className="text-white font-medium">{suggestion.structured_formatting.main_text}</div>
-                {suggestion.structured_formatting.secondary_text && (
-                  <div className="text-slate-400 text-sm mt-0.5">{suggestion.structured_formatting.secondary_text}</div>
+                <div className="text-white font-medium">{suggestion.properties.name}</div>
+                {suggestion.properties.formatted && suggestion.properties.formatted !== suggestion.properties.name && (
+                  <div className="text-slate-400 text-sm mt-0.5">{suggestion.properties.formatted}</div>
                 )}
                 <div className="text-slate-500 text-xs mt-1">
-                  {suggestion.types?.join(', ') || 'Location'}
+                  {suggestion.properties.country || 'Location'}
                 </div>
               </button>
             ))}
@@ -553,10 +495,10 @@ export default function LocationPicker({
       {/* Map Container */}
       {isMapVisible && (
         <div className="relative">
-          {!GOOGLE_MAPS_API_KEY && (
+          {!GEOAPIFY_API_KEY && (
             <div className="w-full h-96 rounded-lg border border-red-500 bg-red-500/10 flex items-center justify-center">
               <p className="text-red-400 text-center px-4">
-                Google Maps API key is missing. Please set VITE_GOOGLE_MAPS_API_KEY in your .env file
+                Geoapify API key is missing. Please set VITE_GEOAPIFY_API_KEY in your .env file
               </p>
             </div>
           )}
