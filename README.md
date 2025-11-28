@@ -2,134 +2,101 @@
 
 ### Overview
 
-FoodSaver is a production-ready 3D marketing website for a food waste–reduction app, built with **React**, **TypeScript**, **Three.js**, **Framer Motion**, and **TailwindCSS**.  
-The repository is now structured as a simple monorepo with separate **client** (frontend) and **server** (backend) folders.
+**FoodSaver** is a complete full-stack food waste reduction platform that connects food donors (restaurants, supermarkets, bakeries) with receivers (individuals, NGOs). The app features real-time notifications, interactive maps, QR code verification, and OAuth authentication.
 
 ### Project Structure
 
-- **`client/`** – Vite + React + TypeScript 3D landing page (the UI you see in the browser)
-- **`server/`** – Minimal Express API skeleton with a health check route
-- Additional docs:
-  - `PROJECT_SUMMARY.md` – High-level feature/section overview
-  - `FEATURES_LIST.txt` – Feature checklist and ideas
+- **`client/`** – React + TypeScript frontend with 3D landing page, dashboards, and Mapbox integration
+- **`server/`** – Node.js + Express backend with MongoDB, Socket.io, Cloudinary, and OAuth
+- **Documentation** – Complete setup guides and API docs
 
 ---
 
-### Quick Start (2 Minutes)
+### Quick Start (5 Minutes)
 
-#### 1. Prerequisites
+#### Prerequisites
 
 - Node.js **16+**
-- npm (bundled with Node)
+- MongoDB (local or [MongoDB Atlas](https://mongodb.com/cloud/atlas))
+- [Cloudinary account](https://cloudinary.com) (free tier)
+- [Mapbox account](https://mapbox.com) (free tier)
 
-#### 2. Run the Frontend (Client)
-
-```bash
-cd client
-npm install
-npm run dev
-```
-
-The site will open at `http://localhost:5173`.
-
-#### 3. (Optional) Run the Backend (Server)
+#### Step 1: Backend Setup
 
 ```bash
 cd server
 npm install
+
+# Create .env file (copy from config.example.env)
+# Add your MongoDB URI, JWT secret, and Cloudinary credentials
+
 npm run dev
 ```
 
-The API server will listen on `http://localhost:5000` with a basic health route at `/health`.
+Backend runs at `http://localhost:5000`
 
-#### 4. Build Frontend for Production
-
-From the `client` folder:
+#### Step 2: Frontend Setup
 
 ```bash
-npm run build
+cd client
+
+# Create .npmrc to handle React dependencies
+echo "legacy-peer-deps=true" > .npmrc
+
+npm install
+
+# Create .env file (copy from env.example)
+# Add: VITE_API_URL=http://localhost:5000
+# Add: VITE_MAPBOX_TOKEN=your-token
+
+npm run dev
 ```
 
-The production build is output to `client/dist/`.
+Frontend runs at `http://localhost:5173`
+
+#### Step 3: Test the App
+
+1. Open `http://localhost:5173`
+2. Click "Get Started" → Register
+3. Access dashboard
+4. Try posting food (donor) or browsing food (receiver)
 
 ---
 
-### Detailed Setup
+### Complete Feature List
 
-#### Client (Frontend)
+#### ✅ Core Features
+- **Multi-Auth System**: Email/password, Google OAuth, GitHub OAuth
+- **Food Donation**: Post surplus food with images, location, dietary info
+- **Food Discovery**: Browse, search, and filter available food
+- **Interactive Map**: Mapbox integration showing real food locations
+- **Smart Claiming**: QR code-based pickup verification system
+- **Real-time Updates**: Socket.io notifications for claims, pickups
+- **Image Management**: Cloudinary-powered image uploads
+- **Geolocation**: Find food within custom radius
 
-From the repository root:
+#### Tech Stack
 
-```bash
-cd client
-npm install
-```
+**Frontend:**
+- React 18 + TypeScript
+- React Router for navigation
+- Zustand for state management
+- Mapbox GL for maps
+- Three.js for 3D graphics
+- Framer Motion for animations
+- TailwindCSS for styling
+- Socket.io client for real-time
+- Axios for API calls
 
-Available commands:
-
-- `npm run dev` – Start Vite dev server
-- `npm run build` – Create production build
-- `npm run preview` – Preview the production build locally
-- `npm run lint` – Run ESLint
-- `npm run typecheck` – Run TypeScript type-checking
-
-Tech stack:
-
-- **React 18 + TypeScript**
-- **Vite** for build tooling
-- **Three.js** via React-Three-Fiber and Drei
-- **React-Three-Postprocessing** for Bloom and effects
-- **Framer Motion** + **GSAP** for animations
-- **TailwindCSS** for styling
-
-Main structure (inside `client/`):
-
-```text
-client/
-  ├── index.html
-  ├── src/
-  │   ├── App.tsx              # Main app composition
-  │   ├── main.tsx             # React entry point
-  │   ├── index.css            # Global styles & Tailwind layers
-  │   ├── components/          # All UI sections
-  │   │   ├── Hero.tsx
-  │   │   ├── About.tsx
-  │   │   ├── Stats.tsx
-  │   │   ├── Features.tsx
-  │   │   ├── AppPreview.tsx
-  │   │   ├── HowItWorks.tsx
-  │   │   ├── Team.tsx
-  │   │   ├── CTA.tsx
-  │   │   ├── Footer.tsx
-  │   │   ├── Navigation.tsx
-  │   │   ├── LoadingScreen.tsx
-  │   │   ├── ParticleBackground.tsx
-  │   │   └── ScrollProgress.tsx
-  │   └── 3d/                  # 3D scenes & models
-  │       ├── HeroScene.tsx
-  │       ├── FloatingFood.tsx
-  │       └── PhoneModel.tsx
-  ├── vite.config.ts
-  ├── tailwind.config.js
-  ├── tsconfig*.json
-  └── eslint.config.js
-```
-
-#### Server (Backend)
-
-From the repository root:
-
-```bash
-cd server
-npm install
-npm run dev
-```
-
-This spins up a small Express server with:
-
-- `GET /health` → returns `{ "status": "ok" }`
-
-You can extend this folder with real API routes, authentication, database connections, etc., without touching the frontend setup.
+**Backend:**
+- Node.js + Express
+- MongoDB + Mongoose
+- Passport.js (JWT, Google, GitHub)
+- Socket.io for WebSocket
+- Cloudinary for images
+- QR code generation
+- Bcrypt for passwords
+- Multer for file uploads
 
 ---
 
@@ -196,9 +163,3 @@ For the backend:
   - Run `npm install` again
 
 ---
-
-### Notes on Bolt References
-
-All previous references to Bolt (`bolt.new` images / labels) have been removed.  
-The HTML now uses neutral Open Graph and Twitter meta tags that you can point to your own FoodSaver images (e.g. `/og-image.png`).
-
