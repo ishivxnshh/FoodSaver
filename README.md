@@ -1,14 +1,36 @@
-## FoodSaver
+# 🌱 FoodSaver
 
-### Overview
+> A complete full-stack platform connecting food donors with receivers to reduce food waste.
 
-**FoodSaver** is a complete full-stack food waste reduction platform that connects food donors (restaurants, supermarkets, bakeries) with receivers (individuals, NGOs). The app features real-time notifications, interactive maps, QR code verification, and OAuth authentication.
+## ⚡ Quick Start
 
-### Project Structure
+**First time?** → Read **[START_HERE.md](START_HERE.md)** for 3-minute setup!
 
-- **`client/`** – React + TypeScript frontend with 3D landing page, dashboards, and Mapbox integration
-- **`server/`** – Node.js + Express backend with MongoDB, Socket.io, Cloudinary, and OAuth
-- **Documentation** – Complete setup guides and API docs
+```bash
+# Terminal 1 - Backend
+cd server && npm install && npm run dev
+
+# Terminal 2 - Frontend  
+cd client && npm install && npm run dev
+```
+
+Open: **http://localhost:5173**
+
+---
+
+## 🎯 What This Is
+
+**FoodSaver** connects:
+- **Donors** (restaurants, supermarkets, bakeries) who have surplus food
+- **Receivers** (individuals, NGOs) who need food
+
+**Key Features:**
+- 🔐 Multiple auth options (Email, Google, GitHub)
+- 📸 Image uploads via Cloudinary
+- 🗺️ Interactive Mapbox maps
+- 📱 QR code verification
+- 🔔 Real-time Socket.io notifications
+- 🌍 Geolocation-based search
 
 ---
 
@@ -39,10 +61,6 @@ Backend runs at `http://localhost:5000`
 
 ```bash
 cd client
-
-# Create .npmrc to handle React dependencies
-echo "legacy-peer-deps=true" > .npmrc
-
 npm install
 
 # Create .env file (copy from env.example)
@@ -100,66 +118,89 @@ Frontend runs at `http://localhost:5173`
 
 ---
 
-### What You Get in the Frontend
+### Application Pages
 
-- **Sections**
-  - Hero (3D scene with floating food objects)
-  - About
-  - Stats (animated counters)
-  - Features (glassmorphism feature cards)
-  - App Preview (3D phone model)
-  - How It Works
-  - Team
-  - CTA
-  - Footer
+#### Landing Page
+- 3D hero with floating food objects
+- About section with mission cards
+- Animated statistics
+- Features showcase
+- How it works flow
+- Call-to-action
 
-- **Visual Effects**
-  - 3D hero and app preview scenes
-  - Particle background
-  - Smooth scroll and hover animations
-  - Glassmorphism and gradient overlays
-  - Loading screen with progress
+#### User Features
+**Donors** (Restaurants, Stores):
+- Post food listings with images
+- Manage active donations
+- Verify pickups with QR codes
+- Track impact statistics
 
----
+**Receivers** (Individuals, NGOs):
+- Browse available food
+- Search by location & dietary needs
+- Claim food items
+- Get QR codes for pickup
+- Track claim history
 
-### Customization Tips
-
-- **Colors** – adjust Tailwind gradients in the components (e.g. `from-emerald-500 to-teal-600`) or in `tailwind.config.js`.
-- **3D Objects** – tweak shapes, colors, and materials in:
-  - `client/src/3d/FloatingFood.tsx`
-  - `client/src/3d/HeroScene.tsx`
-  - `client/src/3d/PhoneModel.tsx`
-- **Copy & Content** – edit text in the React components under `client/src/components/`.
+**Everyone**:
+- Interactive map view
+- Real-time notifications
+- Profile management
+- OAuth login (Google, GitHub)
 
 ---
 
 ### Deployment
 
-For the frontend:
-
-- Build from `client`:
-
+**Frontend (Vercel/Netlify)**:
 ```bash
 cd client
 npm run build
+# Deploy 'dist' folder
+# Set build command: npm run build
+# Set output directory: dist
 ```
 
-- Deploy `client/dist/` to:
-  - Vercel / Netlify (build command `npm run build`, output `dist`)
-  - Any static host by uploading the contents of `dist`
-
-For the backend:
-
-- Deploy `server` to any Node-compatible host (e.g., Render, Railway, Heroku-like platforms).
+**Backend (Render/Railway)**:
+- Deploy `server` folder
+- Add all environment variables
+- Use MongoDB Atlas for production
 
 ---
 
 ### Troubleshooting
 
-- **3D not showing** – check that the browser supports WebGL; try latest Chrome/Firefox/Edge.
-- **Animations are slow** – close heavy tabs, ensure GPU acceleration is enabled.
-- **Build issues** – from `client`:
-  - Delete `node_modules/` and any lockfiles
-  - Run `npm install` again
+**Backend**:
+- MongoDB error → Check `MONGODB_URI` in `.env`
+- Cloudinary fails → Verify 3 credentials (cloud name, api key, api secret)
+- OAuth issues → Callback URLs must match exactly
+
+**Frontend**:
+- Blank page → Check browser console for errors, ensure React 18.2.0 is installed
+- API errors → Ensure backend running on port 5000
+- Map empty → Add valid `VITE_MAPBOX_TOKEN`
+
+**General**:
+- CORS errors → Check `CLIENT_URL` in server `.env`
+- Socket not connecting → Verify Socket.io ports match
 
 ---
+
+## 📚 Documentation
+
+- **[START_HERE.md](START_HERE.md)** ⭐ Start here for quick setup!
+- **[SETUP_INSTRUCTIONS.md](SETUP_INSTRUCTIONS.md)** - Detailed setup guide
+- **[FEATURES.md](FEATURES.md)** - Complete feature list
+- **[server/README.md](server/README.md)** - API documentation
+
+---
+
+## 🎓 Tech Stack Summary
+
+**Frontend**: React, TypeScript, Vite, Router, Zustand, Mapbox, Three.js, Framer Motion, Tailwind
+
+**Backend**: Node.js, Express, MongoDB, Passport, Socket.io, Cloudinary, JWT
+
+---
+
+**Built with ❤️ to reduce food waste and build a sustainable future**

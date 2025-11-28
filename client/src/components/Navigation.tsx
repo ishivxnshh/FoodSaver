@@ -53,13 +53,14 @@ export default function Navigation() {
                 {link.name}
               </motion.a>
             ))}
-            <motion.button
+            <motion.a
+              href="/login"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className="px-6 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-full font-semibold hover:shadow-lg hover:shadow-emerald-500/50 transition-all duration-300"
             >
               Get Started
-            </motion.button>
+            </motion.a>
           </div>
 
           <button
@@ -90,9 +91,9 @@ export default function Navigation() {
                   {link.name}
                 </a>
               ))}
-              <button className="w-full px-6 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-full font-semibold">
+              <a href="/login" className="block w-full px-6 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-full font-semibold text-center">
                 Get Started
-              </button>
+              </a>
             </div>
           </motion.div>
         )}

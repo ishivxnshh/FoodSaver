@@ -46,13 +46,14 @@ export default function CTA() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <motion.button
+            <motion.a
+              href="/register"
               whileHover={{ scale: 1.05, y: -2 }}
               whileTap={{ scale: 0.95 }}
-              className="px-8 py-4 border-2 border-white text-white rounded-full font-bold text-lg hover:bg-white/10 transition-all duration-300"
+              className="px-8 py-4 border-2 border-white text-white rounded-full font-bold text-lg hover:bg-white/10 transition-all duration-300 text-center"
             >
               Become a Partner
-            </motion.button>
+            </motion.a>
           </div>
 
           <motion.div

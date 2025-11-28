@@ -62,12 +62,12 @@ export default function Hero() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 1.4 }}
           >
-            <button className="px-8 py-4 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-full font-semibold text-lg hover:shadow-lg hover:shadow-emerald-500/50 transition-all duration-300 hover:scale-105">
+            <a href="/register" className="px-8 py-4 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-full font-semibold text-lg hover:shadow-lg hover:shadow-emerald-500/50 transition-all duration-300 hover:scale-105 text-center">
               Get Started
-            </button>
-            <button className="px-8 py-4 border-2 border-emerald-400 rounded-full font-semibold text-lg hover:bg-emerald-400/10 transition-all duration-300 hover:scale-105">
+            </a>
+            <a href="#about" className="px-8 py-4 border-2 border-emerald-400 rounded-full font-semibold text-lg hover:bg-emerald-400/10 transition-all duration-300 hover:scale-105 text-center">
               Learn More
-            </button>
+            </a>
           </motion.div>
         </motion.div>
 

@@ -1,47 +1,153 @@
-import { useEffect, useState } from 'react';
-import { AnimatePresence } from 'framer-motion';
-import LoadingScreen from './components/LoadingScreen';
-import ParticleBackground from './components/ParticleBackground';
-import Navigation from './components/Navigation';
-import Hero from './components/Hero';
-import About from './components/About';
-import Stats from './components/Stats';
-import Features from './components/Features';
-import HowItWorks from './components/HowItWorks';
-import CTA from './components/CTA';
-import Footer from './components/Footer';
-import ScrollProgress from './components/ScrollProgress';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
+import { useEffect } from 'react';
+import { useAuthStore } from './store/authStore';
+import { useSocket } from './hooks/useSocket';
+import ProtectedRoute from './components/ProtectedRoute';
+
+// Pages
+import LandingPage from './pages/LandingPage';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import AuthSuccess from './pages/AuthSuccess';
+import Dashboard from './pages/Dashboard';
+import Notifications from './pages/Notifications';
+import MapView from './pages/MapView';
+
+// Donor Pages
+import DonorListings from './pages/donor/DonorListings';
+import CreateListing from './pages/donor/CreateListing';
+import VerifyPickup from './pages/donor/VerifyPickup';
+
+// Receiver Pages
+import BrowseFood from './pages/receiver/BrowseFood';
+import ClaimFood from './pages/receiver/ClaimFood';
+import MyClaims from './pages/receiver/MyClaims';
 
 function App() {
-  const [isLoading, setIsLoading] = useState(true);
+  const { isAuthenticated, fetchMe } = useAuthStore();
+  
+  // Initialize Socket.io for real-time notifications
+  useSocket();
 
   useEffect(() => {
     document.title = 'FoodSaver - Reduce Food Waste';
-  }, []);
+    if (isAuthenticated) {
+      fetchMe();
+    }
+  }, [isAuthenticated, fetchMe]);
 
   return (
-    <>
-      <AnimatePresence>
-        {isLoading && (
-          <LoadingScreen onLoadingComplete={() => setIsLoading(false)} />
-        )}
-      </AnimatePresence>
+    <Router>
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: '#1e293b',
+            color: '#fff',
+            border: '1px solid #334155',
+          },
+          success: {
+            iconTheme: {
+              primary: '#10b981',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
+      <Routes>
+        {/* Public Routes */}
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/auth/success" element={<AuthSuccess />} />
 
-      {!isLoading && (
-        <div className="bg-slate-950 text-white overflow-hidden relative">
-          <ParticleBackground />
-          <ScrollProgress />
-          <Navigation />
-          <Hero />
-          <About />
-          <Stats />
-          <Features />
-          <HowItWorks />
-          <CTA />
-          <Footer />
-        </div>
-      )}
-    </>
+        {/* Protected Routes */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/notifications"
+          element={
+            <ProtectedRoute>
+              <Notifications />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/map"
+          element={
+            <ProtectedRoute>
+              <MapView />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Donor Routes */}
+        <Route
+          path="/donor/listings"
+          element={
+            <ProtectedRoute>
+              <DonorListings />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/donor/create"
+          element={
+            <ProtectedRoute>
+              <CreateListing />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/donor/verify"
+          element={
+            <ProtectedRoute>
+              <VerifyPickup />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Receiver Routes */}
+        <Route
+          path="/receiver/browse"
+          element={
+            <ProtectedRoute>
+              <BrowseFood />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/receiver/claim/:id"
+          element={
+            <ProtectedRoute>
+              <ClaimFood />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/receiver/claims"
+          element={
+            <ProtectedRoute>
+              <MyClaims />
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
+    </Router>
   );
 }
 
