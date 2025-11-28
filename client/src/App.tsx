@@ -7,9 +7,7 @@ import Hero from './components/Hero';
 import About from './components/About';
 import Stats from './components/Stats';
 import Features from './components/Features';
-import AppPreview from './components/AppPreview';
 import HowItWorks from './components/HowItWorks';
-import Team from './components/Team';
 import CTA from './components/CTA';
 import Footer from './components/Footer';
 import ScrollProgress from './components/ScrollProgress';
@@ -38,9 +36,7 @@ function App() {
           <About />
           <Stats />
           <Features />
-          <AppPreview />
           <HowItWorks />
-          <Team />
           <CTA />
           <Footer />
         </div>

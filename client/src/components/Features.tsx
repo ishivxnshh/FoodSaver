@@ -34,7 +34,7 @@ export default function Features() {
   ];
 
   return (
-    <section id="features" className="relative py-32 px-4 bg-gradient-to-b from-slate-950 to-slate-900" ref={ref}>
+    <section id="features" className="relative py-20 px-4 bg-gradient-to-b from-slate-950 to-slate-900" ref={ref}>
       <div className="max-w-7xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
