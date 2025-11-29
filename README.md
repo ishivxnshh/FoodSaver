@@ -1,206 +1,369 @@
+<div align="center">
+
 # 🌱 FoodSaver
 
-> A complete full-stack platform connecting food donors with receivers to reduce food waste.
+### *Connecting surplus food with people who need it*
 
-## ⚡ Quick Start
+[![React](https://img.shields.io/badge/React-18.2-61dafb?logo=react)](https://reactjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178c6?logo=typescript)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-16+-339933?logo=node.js)](https://nodejs.org/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?logo=mongodb)](https://www.mongodb.com/)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**First time?** → Read **[START_HERE.md](START_HERE.md)** for 3-minute setup!
+[Demo](#-demo) • [Features](#-features) • [Quick Start](#-quick-start) • [Tech Stack](#-tech-stack) • [Contributing](#-contributing)
+
+</div>
+
+---
+
+## 🎯 Overview
+
+**FoodSaver** is a full-stack web platform that bridges the gap between food surplus and food insecurity. We connect restaurants, supermarkets, and individuals with excess food to those who need it, reducing waste while helping communities.
+
+### The Problem
+- 🗑️ **1.3 billion tons** of food wasted globally each year
+- 🌍 **811 million people** go to bed hungry every night
+- 💨 Food waste accounts for **8-10%** of global greenhouse gas emissions
+
+### Our Solution
+A real-time platform where donors can instantly share surplus food with receivers nearby, featuring QR-verified pickups, live tracking, and impact metrics.
+
+---
+
+## ✨ Features
+
+### 🎁 For Donors (Restaurants, Bakeries, Supermarkets)
+- **Post Listings**: Upload food with images, quantity, expiry time, and location
+- **Edit & Manage**: Update or remove active listings anytime
+- **Claim Management**: Review incoming claims, confirm pickups
+- **Dual Verification**: Verify pickups via manual 6-digit code or QR scanner
+- **Impact Dashboard**: Track total food saved, CO₂ reduced, and impact score
+
+### 🍽️ For Receivers (Individuals, NGOs, Communities)
+- **Browse Food**: Search by category, dietary preferences, and distance
+- **Interactive Map**: Explore available food on Google Maps with real-time locations
+- **Claim System**: Reserve food items with automatic QR code generation
+- **Pickup Codes**: Get unique verification codes for seamless pickup
+- **Track Claims**: View all claimed food with status updates
+
+### 🌟 Platform-Wide Features
+- **🔐 Multi-Auth**: Email/password, Google OAuth, GitHub OAuth
+- **🔔 Real-Time Notifications**: Socket.io-powered instant updates
+- **📍 Geolocation**: Smart location-based food discovery
+- **📱 QR Verification**: Secure pickup confirmation system
+- **📊 Impact Metrics**: Personal dashboard showing environmental contribution
+- **🎨 3D Landing Page**: Three.js hero with animated food models
+- **🌓 Dark Mode**: Sleek, modern UI with Tailwind CSS
+- **📸 Image Management**: Cloudinary-powered uploads with multiple images per listing
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+- **Node.js** 16+ ([Download](https://nodejs.org/))
+- **MongoDB** ([Atlas Free Tier](https://www.mongodb.com/cloud/atlas) or local)
+- **Cloudinary Account** ([Free Tier](https://cloudinary.com/users/register/free))
+- **Google Maps API Key** ([Get Key](https://developers.google.com/maps/documentation/javascript/get-api-key))
+
+### Installation
 
 ```bash
-# Terminal 1 - Backend
-cd server && npm install && npm run dev
+# Clone the repository
+git clone https://github.com/ishivxnshh/FoodSaver.git
+cd FoodSaver
 
-# Terminal 2 - Frontend  
-cd client && npm install && npm run dev
+# Install dependencies for both client and server
+npm install --prefix client
+npm install --prefix server
 ```
 
-Open: **http://localhost:5173**
+### Environment Setup
 
----
+#### Server Configuration (`server/config.example.env` → `server/.env`)
+```env
+# Database
+MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/foodsaver
 
-## 🎯 What This Is
+# Authentication
+JWT_SECRET=your-super-secret-jwt-key-here
 
-**FoodSaver** connects:
-- **Donors** (restaurants, supermarkets, bakeries) who have surplus food
-- **Receivers** (individuals, NGOs) who need food
+# Cloudinary (Image Hosting)
+CLOUDINARY_CLOUD_NAME=your-cloud-name
+CLOUDINARY_API_KEY=your-api-key
+CLOUDINARY_API_SECRET=your-api-secret
 
-**Key Features:**
-- 🔐 Multiple auth options (Email, Google, GitHub)
-- 📸 Image uploads via Cloudinary
-- 🗺️ Interactive Mapbox maps
-- 📱 QR code verification
-- 🔔 Real-time Socket.io notifications
-- 🌍 Geolocation-based search
+# OAuth (Optional)
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-secret
+GITHUB_CLIENT_ID=your-github-client-id
+GITHUB_CLIENT_SECRET=your-github-secret
 
----
+# Server Config
+PORT=5000
+CLIENT_URL=http://localhost:5173
+```
 
-### Quick Start (5 Minutes)
+#### Client Configuration (`client/env.example` → `client/.env`)
+```env
+VITE_API_URL=http://localhost:5000
+VITE_GOOGLE_MAPS_API_KEY=your-google-maps-api-key
+```
 
-#### Prerequisites
-
-- Node.js **16+**
-- MongoDB (local or [MongoDB Atlas](https://mongodb.com/cloud/atlas))
-- [Cloudinary account](https://cloudinary.com) (free tier)
-- [Mapbox account](https://mapbox.com) (free tier)
-
-#### Step 1: Backend Setup
+### Run the Application
 
 ```bash
+# Terminal 1 - Start Backend Server
 cd server
-npm install
-
-# Create .env file (copy from config.example.env)
-# Add your MongoDB URI, JWT secret, and Cloudinary credentials
-
 npm run dev
-```
+# Server running at http://localhost:5000
 
-Backend runs at `http://localhost:5000`
-
-#### Step 2: Frontend Setup
-
-```bash
+# Terminal 2 - Start Frontend Client
 cd client
-npm install
-
-# Create .env file (copy from env.example)
-# Add: VITE_API_URL=http://localhost:5000
-# Add: VITE_MAPBOX_TOKEN=your-token
-
 npm run dev
+# Client running at http://localhost:5173
 ```
 
-Frontend runs at `http://localhost:5173`
-
-#### Step 3: Test the App
-
-1. Open `http://localhost:5173`
-2. Click "Get Started" → Register
-3. Access dashboard
-4. Try posting food (donor) or browsing food (receiver)
+🎉 Open **http://localhost:5173** and create your first account!
 
 ---
 
-### Complete Feature List
+## 🏗️ Tech Stack
 
-#### ✅ Core Features
-- **Multi-Auth System**: Email/password, Google OAuth, GitHub OAuth
-- **Food Donation**: Post surplus food with images, location, dietary info
-- **Food Discovery**: Browse, search, and filter available food
-- **Interactive Map**: Mapbox integration showing real food locations
-- **Smart Claiming**: QR code-based pickup verification system
-- **Real-time Updates**: Socket.io notifications for claims, pickups
-- **Image Management**: Cloudinary-powered image uploads
-- **Geolocation**: Find food within custom radius
+### Frontend
+| Technology | Purpose |
+|------------|---------|
+| **React 18** | UI framework with hooks and concurrent features |
+| **TypeScript** | Type-safe development |
+| **Vite** | Lightning-fast build tool and dev server |
+| **React Router v6** | Client-side routing with protected routes |
+| **Zustand** | Lightweight state management |
+| **Google Maps API** | Interactive maps, geocoding, and places autocomplete |
+| **Three.js + React Three Fiber** | 3D graphics for landing page hero |
+| **Framer Motion** | Smooth animations and transitions |
+| **Tailwind CSS** | Utility-first styling framework |
+| **Socket.io Client** | Real-time WebSocket communication |
+| **React Hot Toast** | Beautiful notification system |
+| **@yudiel/react-qr-scanner** | Camera-based QR code scanning |
+| **date-fns** | Date formatting and manipulation |
 
-#### Tech Stack
-
-**Frontend:**
-- React 18 + TypeScript
-- React Router for navigation
-- Zustand for state management
-- Mapbox GL for maps
-- Three.js for 3D graphics
-- Framer Motion for animations
-- TailwindCSS for styling
-- Socket.io client for real-time
-- Axios for API calls
-
-**Backend:**
-- Node.js + Express
-- MongoDB + Mongoose
-- Passport.js (JWT, Google, GitHub)
-- Socket.io for WebSocket
-- Cloudinary for images
-- QR code generation
-- Bcrypt for passwords
-- Multer for file uploads
+### Backend
+| Technology | Purpose |
+|------------|---------|
+| **Node.js + Express** | RESTful API server |
+| **MongoDB + Mongoose** | NoSQL database with ODM |
+| **Passport.js** | Authentication middleware (JWT, Google, GitHub) |
+| **Socket.io** | Real-time bidirectional communication |
+| **Cloudinary SDK** | Cloud-based image storage and CDN |
+| **QRCode** | QR code generation for pickups |
+| **Multer** | Multipart form-data handling for uploads |
+| **Bcrypt.js** | Password hashing and salting |
+| **JSON Web Tokens** | Stateless authentication tokens |
 
 ---
 
-### Application Pages
+## 📂 Project Structure
 
-#### Landing Page
-- 3D hero with floating food objects
-- About section with mission cards
-- Animated statistics
-- Features showcase
-- How it works flow
-- Call-to-action
-
-#### User Features
-**Donors** (Restaurants, Stores):
-- Post food listings with images
-- Manage active donations
-- Verify pickups with QR codes
-- Track impact statistics
-
-**Receivers** (Individuals, NGOs):
-- Browse available food
-- Search by location & dietary needs
-- Claim food items
-- Get QR codes for pickup
-- Track claim history
-
-**Everyone**:
-- Interactive map view
-- Real-time notifications
-- Profile management
-- OAuth login (Google, GitHub)
+```
+FoodSaver/
+├── client/                    # React frontend
+│   ├── src/
+│   │   ├── 3d/               # Three.js 3D components
+│   │   ├── components/        # Reusable UI components
+│   │   ├── pages/            # Route pages
+│   │   │   ├── donor/        # Donor-specific pages
+│   │   │   └── receiver/     # Receiver-specific pages
+│   │   ├── store/            # Zustand state management
+│   │   ├── lib/              # API client & Socket.io
+│   │   └── hooks/            # Custom React hooks
+│   └── package.json
+│
+├── server/                   # Node.js backend
+│   ├── config/              # Database, Passport, Cloudinary
+│   ├── controllers/         # Request handlers
+│   ├── models/              # Mongoose schemas
+│   ├── routes/              # Express routes
+│   ├── middleware/          # Auth, error handling, upload
+│   ├── utils/               # QR code, Cloudinary helpers
+│   └── index.js             # Server entry point
+│
+└── README.md
+```
 
 ---
 
-### Deployment
+## 🔄 Application Flow
 
-**Frontend (Vercel/Netlify)**:
+### 1️⃣ Donor Posts Food
+```
+Donor → Create Listing → Add images, details, location → Submit
+→ Listing appears on map & browse page → Real-time broadcast
+```
+
+### 2️⃣ Receiver Claims Food
+```
+Receiver → Browse/Map → Find food → Claim with pickup time
+→ QR code + 6-digit code generated → Notification sent to donor
+```
+
+### 3️⃣ Pickup Verification
+```
+Donor → Sees claim in "Verify Pickups" → Confirms claim
+→ Receiver arrives → Shows QR/code → Donor scans/enters code
+→ Claim marked complete → Stats updated (food saved, CO₂ reduced)
+```
+
+---
+
+## 📊 Key Pages
+
+| Page | Route | Description |
+|------|-------|-------------|
+| **Landing** | `/` | 3D hero, features, team, CTA |
+| **Dashboard** | `/dashboard` | User home with quick actions & stats |
+| **Create Listing** | `/donor/create` | Post new food donation |
+| **Edit Listing** | `/donor/edit/:id` | Modify existing listings |
+| **Donor Listings** | `/donor/listings` | Manage all posted food |
+| **Verify Pickups** | `/donor/verify` | Confirm/verify claims with QR/code |
+| **Browse Food** | `/receiver/browse` | Search available food |
+| **Map View** | `/map` | Interactive Google Maps food explorer |
+| **Claim Food** | `/receiver/claim/:id` | Reserve food item |
+| **My Claims** | `/receiver/claims` | Track claimed food status |
+| **Notifications** | `/notifications` | View all activity updates |
+
+---
+
+## 🔐 Authentication System
+
+- **JWT-based** session management
+- **OAuth 2.0** integration (Google, GitHub)
+- **Role-based access**: `donor`, `receiver`, or `both`
+- **Protected routes** with automatic redirect
+- **Profile completion** flow for OAuth users
+
+---
+
+## 🌍 Environment Impact
+
+Every verified pickup calculates:
+- **Food Saved**: Number of completed donations
+- **CO₂ Reduced**: Estimated at ~2.5 kg per serving saved
+- **Impact Score**: Combined metric of items + servings donated/received
+
+---
+
+## 🚢 Deployment
+
+### Frontend (Vercel/Netlify)
 ```bash
 cd client
 npm run build
 # Deploy 'dist' folder
-# Set build command: npm run build
-# Set output directory: dist
+# Build command: npm run build
+# Output directory: dist
 ```
 
-**Backend (Render/Railway)**:
-- Deploy `server` folder
-- Add all environment variables
-- Use MongoDB Atlas for production
+**Environment Variables:**
+- `VITE_API_URL`: Your production API URL
+- `VITE_GOOGLE_MAPS_API_KEY`: Google Maps API key
+
+### Backend (Render/Railway/Heroku)
+```bash
+# Deploy 'server' folder
+# Build command: npm install
+# Start command: node index.js
+```
+
+**Environment Variables:** All from `config.example.env` + MongoDB Atlas URI
 
 ---
 
-### Troubleshooting
+## 🐛 Troubleshooting
 
-**Backend**:
-- MongoDB error → Check `MONGODB_URI` in `.env`
-- Cloudinary fails → Verify 3 credentials (cloud name, api key, api secret)
-- OAuth issues → Callback URLs must match exactly
+<details>
+<summary><b>Server won't start</b></summary>
 
-**Frontend**:
-- Blank page → Check browser console for errors, ensure React 18.2.0 is installed
-- API errors → Ensure backend running on port 5000
-- Map empty → Add valid `VITE_MAPBOX_TOKEN`
+- Check MongoDB connection string in `.env`
+- Verify port 5000 is not in use: `netstat -ano | findstr :5000`
+- Ensure all environment variables are set
+</details>
 
-**General**:
-- CORS errors → Check `CLIENT_URL` in server `.env`
-- Socket not connecting → Verify Socket.io ports match
+<details>
+<summary><b>Frontend shows blank page</b></summary>
+
+- Check browser console for errors
+- Verify `VITE_API_URL` in client `.env`
+- Ensure backend is running on correct port
+- Clear browser cache and reload
+</details>
+
+<details>
+<summary><b>Images won't upload</b></summary>
+
+- Verify Cloudinary credentials (all 3: cloud name, API key, secret)
+- Check file size limits (default: 10MB)
+- Ensure `CLOUDINARY_` env vars are correct
+</details>
+
+<details>
+<summary><b>Google Maps not loading</b></summary>
+
+- Check `VITE_GOOGLE_MAPS_API_KEY` is valid
+- Enable required APIs: Maps JavaScript API, Places API, Geocoding API
+- Verify API key restrictions and billing account
+</details>
+
+<details>
+<summary><b>Socket.io connection errors</b></summary>
+
+- Verify `CLIENT_URL` in server `.env` matches frontend URL
+- Check CORS configuration in `server/index.js`
+- Ensure WebSocket traffic is allowed (check firewall/proxy)
+</details>
 
 ---
 
-## 📚 Documentation
+## 🤝 Contributing
 
-- **[START_HERE.md](START_HERE.md)** ⭐ Start here for quick setup!
-- **[SETUP_INSTRUCTIONS.md](SETUP_INSTRUCTIONS.md)** - Detailed setup guide
-- **[FEATURES.md](FEATURES.md)** - Complete feature list
-- **[server/README.md](server/README.md)** - API documentation
+We welcome contributions! Here's how to get started:
+
+1. **Fork the repository**
+2. **Create a feature branch**: `git checkout -b feature/amazing-feature`
+3. **Commit changes**: `git commit -m 'Add amazing feature'`
+4. **Push to branch**: `git push origin feature/amazing-feature`
+5. **Open a Pull Request**
+
+### Development Guidelines
+- Follow existing code style (TypeScript + ESLint)
+- Write meaningful commit messages
+- Test features thoroughly before submitting
+- Update documentation for new features
 
 ---
 
-## 🎓 Tech Stack Summary
+## 📝 License
 
-**Frontend**: React, TypeScript, Vite, Router, Zustand, Mapbox, Three.js, Framer Motion, Tailwind
-
-**Backend**: Node.js, Express, MongoDB, Passport, Socket.io, Cloudinary, JWT
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
 
 ---
 
-**Built with ❤️ to reduce food waste and build a sustainable future**
+## 🙏 Acknowledgments
+
+- **Three.js** for stunning 3D graphics
+- **MongoDB** for flexible NoSQL database
+- **Cloudinary** for seamless image management
+- **Google Maps** for geolocation services
+- **Socket.io** for real-time capabilities
+- All contributors making food waste reduction possible
+
+---
+
+<div align="center">
+
+### 🌟 Star this repo if you find it helpful!
+
+**Built with ❤️ to reduce food waste and create a sustainable future**
+
+[Report Bug](https://github.com/ishivxnshh/FoodSaver/issues) • [Request Feature](https://github.com/ishivxnshh/FoodSaver/issues) • [Documentation](https://github.com/ishivxnshh/FoodSaver/wiki)
+
+</div>

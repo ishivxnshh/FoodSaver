@@ -18,6 +18,7 @@ import MapView from './pages/MapView';
 // Donor Pages
 import DonorListings from './pages/donor/DonorListings';
 import CreateListing from './pages/donor/CreateListing';
+import EditListing from './pages/donor/EditListing';
 import VerifyPickup from './pages/donor/VerifyPickup';
 
 // Receiver Pages
@@ -118,6 +119,14 @@ function App() {
           element={
             <ProtectedRoute>
               <CreateListing />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/donor/edit/:id"
+          element={
+            <ProtectedRoute>
+              <EditListing />
             </ProtectedRoute>
           }
         />

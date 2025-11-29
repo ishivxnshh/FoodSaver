@@ -1,18 +1,48 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { motion } from 'framer-motion';
 import { Package, Heart, MapPin, Bell, LogOut, QrCode } from 'lucide-react';
+import api from '../lib/api';
+
+interface UserStats {
+  foodSaved: number;
+  co2Reduced: number;
+  impactScore: number;
+}
 
 export default function Dashboard() {
   const { user, logout, isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
+  const [stats, setStats] = useState<UserStats>({
+    foodSaved: 0,
+    co2Reduced: 0,
+    impactScore: 0,
+  });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!isAuthenticated) {
       navigate('/login');
     }
   }, [isAuthenticated, navigate]);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await api.get('/stats/user');
+        setStats(response.data);
+      } catch (error) {
+        console.error('Failed to fetch stats:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (isAuthenticated) {
+      fetchStats();
+    }
+  }, [isAuthenticated]);
 
   const handleLogout = () => {
     logout();
@@ -132,7 +162,7 @@ export default function Dashboard() {
           ))}
         </div>
 
-        {/* Quick Stats (placeholder) */}
+        {/* Quick Stats */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -141,15 +171,21 @@ export default function Dashboard() {
         >
           <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-2xl p-6">
             <p className="text-slate-400 text-sm mb-1">Food Saved</p>
-            <p className="text-3xl font-bold text-emerald-400">0</p>
+            <p className="text-3xl font-bold text-emerald-400">
+              {loading ? '...' : stats.foodSaved}
+            </p>
           </div>
           <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-2xl p-6">
             <p className="text-slate-400 text-sm mb-1">CO₂ Reduced</p>
-            <p className="text-3xl font-bold text-cyan-400">0 kg</p>
+            <p className="text-3xl font-bold text-cyan-400">
+              {loading ? '...' : `${stats.co2Reduced} kg`}
+            </p>
           </div>
           <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-2xl p-6">
             <p className="text-slate-400 text-sm mb-1">Impact Score</p>
-            <p className="text-3xl font-bold text-blue-400">0</p>
+            <p className="text-3xl font-bold text-blue-400">
+              {loading ? '...' : stats.impactScore}
+            </p>
           </div>
         </motion.div>
       </div>

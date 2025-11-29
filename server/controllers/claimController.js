@@ -29,27 +29,27 @@ export const createClaim = async (req, res) => {
 
     // Generate verification code and QR code
     const verificationCode = generateVerificationCode();
+    
+    // Create claim first to get the ID
+    const claim = await Claim.create({
+      foodListing: foodListingId,
+      claimer: req.user._id,
+      donor: listing.donor._id,
+      pickupTime,
+      qrCode: `temp-${Date.now()}-${Math.random().toString(36)}`, // Temporary unique value
+      verificationCode,
+      status: 'pending',
+    });
+
+    // Generate QR code with claim ID
     const qrCodeData = {
-      claimId: null, // Will be updated after creation
+      claimId: claim._id.toString(),
       foodListingId: listing._id,
       claimerId: req.user._id,
       donorId: listing.donor._id,
       verificationCode,
     };
 
-    // Create claim
-    const claim = await Claim.create({
-      foodListing: foodListingId,
-      claimer: req.user._id,
-      donor: listing.donor._id,
-      pickupTime,
-      qrCode: '', // Temporary
-      verificationCode,
-      status: 'pending',
-    });
-
-    // Update QR code with claim ID
-    qrCodeData.claimId = claim._id.toString();
     const qrCode = await generateQRCode(qrCodeData);
     claim.qrCode = qrCode;
     await claim.save();
@@ -243,8 +243,20 @@ export const verifyClaim = async (req, res) => {
     }
 
     // Verify code
-    if (claim.verificationCode !== verificationCode.toUpperCase()) {
-      return res.status(400).json({ message: 'Invalid verification code' });
+    const receivedCode = verificationCode.toUpperCase().trim();
+    const storedCode = claim.verificationCode.toUpperCase().trim();
+    
+    console.log('Verification attempt:', {
+      received: receivedCode,
+      stored: storedCode,
+      match: receivedCode === storedCode
+    });
+
+    if (storedCode !== receivedCode) {
+      return res.status(400).json({ 
+        message: 'Invalid verification code',
+        debug: { received: receivedCode, expected: storedCode }
+      });
     }
 
     // Update claim

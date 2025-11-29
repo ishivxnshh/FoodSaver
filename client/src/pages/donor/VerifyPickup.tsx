@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { QrCode, Scan, CheckCircle, Hash } from 'lucide-react';
+import { QrCode, Scan, CheckCircle, Hash, Camera, X } from 'lucide-react';
 import api from '../../lib/api';
 import toast from 'react-hot-toast';
+import { Scanner } from '@yudiel/react-qr-scanner';
 
 export default function VerifyPickup() {
   const [claims, setClaims] = useState<any[]>([]);
@@ -12,6 +13,7 @@ export default function VerifyPickup() {
   const [selectedClaim, setSelectedClaim] = useState<any>(null);
   const [verificationCode, setVerificationCode] = useState('');
   const [showScanner, setShowScanner] = useState(false);
+  const [scanMode, setScanMode] = useState<'code' | 'qr'>('code');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -21,10 +23,13 @@ export default function VerifyPickup() {
   const fetchClaims = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/claims/received', {
-        params: { status: 'confirmed' },
-      });
-      setClaims(response.data.claims);
+      // Fetch both pending and confirmed claims
+      const response = await api.get('/claims/received');
+      // Filter for pending and confirmed claims only
+      const activeClaims = response.data.claims.filter(
+        (claim: any) => claim.status === 'pending' || claim.status === 'confirmed'
+      );
+      setClaims(activeClaims);
     } catch (error) {
       toast.error('Failed to fetch claims');
     } finally {
@@ -50,6 +55,47 @@ export default function VerifyPickup() {
       fetchClaims();
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Invalid verification code');
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const handleConfirm = async (claimId: string) => {
+    try {
+      await api.put(`/claims/${claimId}/confirm`);
+      toast.success('Claim confirmed! Waiting for pickup.');
+      fetchClaims();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to confirm claim');
+    }
+  };
+
+  const handleQRScan = async (result: string) => {
+    try {
+      // Parse QR code data
+      const qrData = JSON.parse(result);
+      
+      if (!selectedClaim) return;
+
+      // Verify the claim matches
+      if (qrData.claimId !== selectedClaim._id) {
+        toast.error('QR code does not match this claim');
+        return;
+      }
+
+      // Auto-verify with QR data
+      setVerifying(true);
+      await api.post(`/claims/${selectedClaim._id}/verify`, {
+        verificationCode: qrData.verificationCode,
+      });
+      
+      toast.success('Pickup verified successfully via QR code!');
+      setSelectedClaim(null);
+      setVerificationCode('');
+      setScanMode('code');
+      fetchClaims();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Invalid QR code');
     } finally {
       setVerifying(false);
     }
@@ -115,20 +161,36 @@ export default function VerifyPickup() {
                     </p>
 
                     <div className="flex items-center gap-2">
-                      <span className="px-3 py-1 bg-yellow-500/20 text-yellow-400 border border-yellow-500/50 rounded-lg text-sm font-medium">
-                        Ready for Pickup
-                      </span>
+                      {claim.status === 'pending' ? (
+                        <span className="px-3 py-1 bg-blue-500/20 text-blue-400 border border-blue-500/50 rounded-lg text-sm font-medium">
+                          Needs Confirmation
+                        </span>
+                      ) : (
+                        <span className="px-3 py-1 bg-yellow-500/20 text-yellow-400 border border-yellow-500/50 rounded-lg text-sm font-medium">
+                          Ready for Pickup
+                        </span>
+                      )}
                     </div>
                   </div>
 
-                  {/* Verify Button */}
-                  <button
-                    onClick={() => setSelectedClaim(claim)}
-                    className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-lg font-semibold hover:shadow-lg hover:shadow-emerald-500/50 transition-all flex items-center gap-2"
-                  >
-                    <Scan className="w-5 h-5" />
-                    Verify
-                  </button>
+                  {/* Action Button */}
+                  {claim.status === 'pending' ? (
+                    <button
+                      onClick={() => handleConfirm(claim._id)}
+                      className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg font-semibold hover:shadow-lg hover:shadow-blue-500/50 transition-all flex items-center gap-2"
+                    >
+                      <CheckCircle className="w-5 h-5" />
+                      Confirm
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setSelectedClaim(claim)}
+                      className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-lg font-semibold hover:shadow-lg hover:shadow-emerald-500/50 transition-all flex items-center gap-2"
+                    >
+                      <Scan className="w-5 h-5" />
+                      Verify
+                    </button>
+                  )}
                 </div>
               </motion.div>
             ))}
@@ -156,23 +218,88 @@ export default function VerifyPickup() {
               <p className="text-white font-semibold">{selectedClaim.claimer?.name}</p>
             </div>
 
-            {/* Manual Code Entry */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                Enter 6-Digit Code
-              </label>
-              <div className="relative">
-                <Hash className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-500" />
-                <input
-                  type="text"
-                  value={verificationCode}
-                  onChange={(e) => setVerificationCode(e.target.value.toUpperCase())}
-                  maxLength={6}
-                  className="w-full pl-12 pr-4 py-4 bg-slate-800/50 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-white text-center text-2xl tracking-widest font-bold uppercase"
-                  placeholder="ABC123"
-                />
-              </div>
+            {/* Expected Verification Code */}
+            <div className="mb-6 bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4">
+              <p className="text-slate-400 text-xs mb-1 text-center">Expected Code</p>
+              <p className="text-emerald-400 text-2xl font-bold text-center tracking-widest">
+                {selectedClaim.verificationCode}
+              </p>
+              <p className="text-slate-500 text-xs mt-1 text-center">
+                Ask the receiver to show this code
+              </p>
             </div>
+
+            {/* Mode Switcher */}
+            <div className="flex gap-2 mb-6 bg-slate-800/50 p-1 rounded-lg">
+              <button
+                onClick={() => setScanMode('code')}
+                className={`flex-1 py-2 px-4 rounded-md transition-all flex items-center justify-center gap-2 ${
+                  scanMode === 'code'
+                    ? 'bg-emerald-500 text-white'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Hash className="w-4 h-4" />
+                Code
+              </button>
+              <button
+                onClick={() => setScanMode('qr')}
+                className={`flex-1 py-2 px-4 rounded-md transition-all flex items-center justify-center gap-2 ${
+                  scanMode === 'qr'
+                    ? 'bg-emerald-500 text-white'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Camera className="w-4 h-4" />
+                QR Scan
+              </button>
+            </div>
+
+            {scanMode === 'code' ? (
+              /* Manual Code Entry */
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Enter 6-Digit Code
+                </label>
+                <div className="relative">
+                  <Hash className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-500" />
+                  <input
+                    type="text"
+                    value={verificationCode}
+                    onChange={(e) => setVerificationCode(e.target.value.toUpperCase())}
+                    maxLength={6}
+                    className="w-full pl-12 pr-4 py-4 bg-slate-800/50 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-white text-center text-2xl tracking-widest font-bold uppercase"
+                    placeholder="ABC123"
+                  />
+                </div>
+              </div>
+            ) : (
+              /* QR Scanner */
+              <div className="mb-6">
+                <div className="relative bg-black rounded-lg overflow-hidden aspect-square">
+                  <Scanner
+                    onScan={(result) => {
+                      if (result && result[0]?.rawValue) {
+                        handleQRScan(result[0].rawValue);
+                      }
+                    }}
+                    onError={(error) => console.error(error)}
+                    constraints={{
+                      facingMode: 'environment'
+                    }}
+                    styles={{
+                      container: {
+                        width: '100%',
+                        height: '100%'
+                      }
+                    }}
+                  />
+                </div>
+                <p className="text-slate-400 text-xs text-center mt-2">
+                  Point camera at the receiver's QR code
+                </p>
+              </div>
+            )}
 
             {/* Buttons */}
             <div className="flex gap-3">
@@ -180,32 +307,38 @@ export default function VerifyPickup() {
                 onClick={() => {
                   setSelectedClaim(null);
                   setVerificationCode('');
+                  setScanMode('code');
                 }}
                 className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-semibold transition-colors"
               >
                 Cancel
               </button>
-              <button
-                onClick={handleVerify}
-                disabled={verifying || verificationCode.length !== 6}
-                className="flex-1 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-lg font-semibold hover:shadow-lg hover:shadow-emerald-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {verifying ? (
-                  <>
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Verifying...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle className="w-5 h-5" />
-                    Verify
-                  </>
-                )}
-              </button>
+              {scanMode === 'code' && (
+                <button
+                  onClick={handleVerify}
+                  disabled={verifying || verificationCode.length !== 6}
+                  className="flex-1 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-lg font-semibold hover:shadow-lg hover:shadow-emerald-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {verifying ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Verifying...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-5 h-5" />
+                      Verify
+                    </>
+                  )}
+                </button>
+              )}
             </div>
 
             <p className="text-slate-500 text-xs text-center mt-4">
-              Ask the claimer to show their QR code or tell you the 6-digit code
+              {scanMode === 'code' 
+                ? 'Ask the claimer to show their 6-digit code'
+                : 'Scanning automatically verifies the pickup'
+              }
             </p>
           </motion.div>
         </div>
