@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, Package, X } from 'lucide-react';
+import { MapPin, Package, X, AlertCircle } from 'lucide-react';
 import api from '../lib/api';
 import toast from 'react-hot-toast';
+import { useAuthStore } from '../store/authStore';
 
 declare global {
   interface Window {
@@ -28,14 +29,31 @@ interface FoodListing {
 
 export default function MapView() {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<google.maps.Map | null>(null);
   const markers = useRef<google.maps.Marker[]>([]);
   const [listings, setListings] = useState<FoodListing[]>([]);
   const [selectedListing, setSelectedListing] = useState<FoodListing | null>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [showRolePopup, setShowRolePopup] = useState(false);
 
   const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
+
+  const handleClaimClick = () => {
+    if (!user) return;
+
+    // Check if user is donor-only
+    if (user.role === 'donor') {
+      setShowRolePopup(true);
+      return;
+    }
+
+    // Allow receiver and both roles to claim
+    if (selectedListing) {
+      navigate(`/receiver/claim/${selectedListing._id}`);
+    }
+  };
 
   // Load Google Maps script
   useEffect(() => {
@@ -209,10 +227,52 @@ export default function MapView() {
                 </div>
 
                 <button
-                  onClick={() => navigate(`/receiver/claim/${selectedListing._id}`)}
+                  onClick={handleClaimClick}
                   className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-lg font-semibold hover:shadow-lg hover:shadow-emerald-500/50 transition-all"
                 >
                   Claim This Food
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Role Restriction Popup */}
+        {showRolePopup && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 bg-amber-500/20 rounded-full flex items-center justify-center">
+                  <AlertCircle className="w-6 h-6 text-amber-400" />
+                </div>
+                <h3 className="text-xl font-bold text-white">Access Restricted</h3>
+              </div>
+              
+              <p className="text-slate-300 mb-6">
+                Only users with <span className="text-emerald-400 font-semibold">Receiver</span> or{' '}
+                <span className="text-emerald-400 font-semibold">Both</span> roles can claim food listings.
+              </p>
+
+              <p className="text-slate-400 text-sm mb-6">
+                Your current role is <span className="text-amber-400 font-semibold">Donor</span>. 
+                If you'd like to claim food, please update your profile to include the Receiver role.
+              </p>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowRolePopup(false)}
+                  className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-medium transition-colors"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={() => {
+                    setShowRolePopup(false);
+                    navigate('/auth/complete-profile');
+                  }}
+                  className="flex-1 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-lg font-medium hover:shadow-lg hover:shadow-emerald-500/50 transition-all"
+                >
+                  Update Role
                 </button>
               </div>
             </div>

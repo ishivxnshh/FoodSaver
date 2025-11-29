@@ -203,16 +203,12 @@ export default function LocationPicker({
       },
       (results, status) => {
         setIsSearching(false);
-        console.log('Geocode status:', status);
-        console.log('Geocode results:', results);
         
         if (status === 'OK' && results && results.length > 0) {
           // Filter out generic country-level results
           const specificResults = results.filter(
             (r) => r.formatted_address && r.formatted_address.trim().toLowerCase() !== 'india'
           );
-
-          console.log('Filtered specific results:', specificResults);
 
           let chosen = specificResults.length > 0 ? specificResults[0] : results[0];
 
@@ -221,7 +217,6 @@ export default function LocationPicker({
           const lng = loc.lng();
           const addr = chosen.formatted_address || searchTerm;
           
-          console.log('Chosen location:', { lat, lng, addr });
           setLocationFromLatLng(lat, lng, addr);
         } else {
           alert('Location not found. Please try a different search term or click on the map.');

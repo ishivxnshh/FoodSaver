@@ -1,5 +1,5 @@
 import express from 'express';
-import { protect } from '../middleware/auth.js';
+import { protect, authorize } from '../middleware/auth.js';
 import {
   createClaim,
   getMyClaims,
@@ -16,8 +16,8 @@ const router = express.Router();
 // All routes are protected
 router.use(protect);
 
-router.post('/', createClaim);
-router.get('/my-claims', getMyClaims);
+router.post('/', authorize('receiver', 'both'), createClaim);
+router.get('/my-claims', authorize('receiver', 'both'), getMyClaims);
 router.get('/received', getReceivedClaims);
 router.get('/:id', getClaim);
 router.put('/:id/confirm', confirmClaim);
