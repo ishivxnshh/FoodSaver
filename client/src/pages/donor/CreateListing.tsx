@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Upload, X } from 'lucide-react';
+import { Upload, X, Sparkles, Loader2 } from 'lucide-react';
 import api from '../../lib/api';
 import toast from 'react-hot-toast';
 import LocationPicker from '../../components/LocationPicker';
@@ -9,6 +9,7 @@ import LocationPicker from '../../components/LocationPicker';
 export default function CreateListing() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
   const [images, setImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   
@@ -55,6 +56,114 @@ export default function CreateListing() {
   const removeImage = (index: number) => {
     setImages(images.filter((_, i) => i !== index));
     setImagePreviews(imagePreviews.filter((_, i) => i !== index));
+  };
+
+  const handleAIAutoFill = async () => {
+    if (images.length === 0) {
+      toast.error('Please upload an image first');
+      return;
+    }
+
+    try {
+      setAiLoading(true);
+      const toastId = toast.loading('AI analyzing your food image...');
+
+      // Convert first image to base64
+      const file = images[0];
+      const base64 = await fileToBase64(file);
+      const base64Data = base64.split(',')[1]; // Remove data:image/jpeg;base64, prefix
+
+      // Call Gemini Vision API
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [{
+              parts: [
+                {
+                  text: `You are a food recognition AI. Analyze this food image and return ONLY a JSON object (no markdown, no code blocks) with these exact fields:
+{
+  "title": "name of the food item",
+  "description": "brief description including condition and freshness (2-3 sentences)",
+  "quantity": "estimated quantity (e.g., '5 portions', '2kg', '10 pieces')",
+  "expiryHours": number (estimated hours until expiry, e.g., 24 for fresh food, 6 for cooked food, 48 for packaged)
+}
+
+Be concise and practical. Return ONLY the JSON object.`
+                },
+                {
+                  inline_data: {
+                    mime_type: file.type,
+                    data: base64Data,
+                  },
+                },
+              ],
+            }],
+            generationConfig: {
+              temperature: 0.4,
+              topK: 32,
+              topP: 1,
+              maxOutputTokens: 1024,
+            },
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to analyze image');
+      }
+
+      const data = await response.json();
+      const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+      if (!aiResponse) {
+        throw new Error('No response from AI');
+      }
+
+      // Parse JSON from response (handle potential markdown wrapping)
+      let jsonStr = aiResponse.trim();
+      if (jsonStr.startsWith('```json')) {
+        jsonStr = jsonStr.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+      } else if (jsonStr.startsWith('```')) {
+        jsonStr = jsonStr.replace(/```\n?/g, '');
+      }
+
+      const aiData = JSON.parse(jsonStr);
+
+      // Calculate expiry datetime
+      const expiryDate = new Date();
+      expiryDate.setHours(expiryDate.getHours() + (aiData.expiryHours || 24));
+      const expiryDateTime = expiryDate.toISOString().slice(0, 16);
+
+      // Update form data
+      setFormData({
+        ...formData,
+        title: aiData.title || '',
+        description: aiData.description || '',
+        quantity: aiData.quantity || '',
+        expiresAt: expiryDateTime,
+      });
+
+      toast.success('Form auto-filled by AI!', { id: toastId });
+    } catch (error: any) {
+      console.error('AI auto-fill error:', error);
+      toast.error(error.message || 'Failed to analyze image. Please fill manually.');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -185,6 +294,30 @@ export default function CreateListing() {
                   </label>
                 )}
               </div>
+
+              {/* AI Auto-Fill Button */}
+              {images.length > 0 && (
+                <motion.button
+                  type="button"
+                  onClick={handleAIAutoFill}
+                  disabled={aiLoading}
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-4 w-full md:w-auto px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-lg font-semibold hover:shadow-lg hover:shadow-purple-500/50 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {aiLoading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span>AI Analyzing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-5 h-5" />
+                      <span>AI Auto-Fill</span>
+                    </>
+                  )}
+                </motion.button>
+              )}
             </div>
 
             {/* Title */}
