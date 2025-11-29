@@ -105,7 +105,16 @@ Before deploying, ensure you have:
 6. **Deploy**:
    - Click **"Create Web Service"**
    - Wait for deployment (5-10 minutes)
-   - Your API will be at: `https://your-service-name.onrender.com`
+   - **Copy your Render URL**: e.g., `https://foodsaver-abc123.onrender.com`
+
+7. **Update Environment Variables** (after getting your Render URL):
+   - Go to **Environment** tab
+   - Update `GOOGLE_CALLBACK_URL` with your actual Render URL
+   - Update `GITHUB_CALLBACK_URL` with your actual Render URL
+   - Update `CLIENT_URL` with your Vercel URL (after frontend deployment)
+   - Click **"Save Changes"**
+   
+   **⚠️ Important**: Saving environment variables will automatically trigger a redeploy. Wait for it to complete.
 
 ### Option B: Deploy via render.yaml
 
