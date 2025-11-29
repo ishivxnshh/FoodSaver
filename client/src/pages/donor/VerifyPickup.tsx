@@ -218,17 +218,6 @@ export default function VerifyPickup() {
               <p className="text-white font-semibold">{selectedClaim.claimer?.name}</p>
             </div>
 
-            {/* Expected Verification Code */}
-            <div className="mb-6 bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4">
-              <p className="text-slate-400 text-xs mb-1 text-center">Expected Code</p>
-              <p className="text-emerald-400 text-2xl font-bold text-center tracking-widest">
-                {selectedClaim.verificationCode}
-              </p>
-              <p className="text-slate-500 text-xs mt-1 text-center">
-                Ask the receiver to show this code
-              </p>
-            </div>
-
             {/* Mode Switcher */}
             <div className="flex gap-2 mb-6 bg-slate-800/50 p-1 rounded-lg">
               <button
