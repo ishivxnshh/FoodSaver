@@ -85,8 +85,8 @@ copy env.example .env
 # Backend API URL
 VITE_API_URL=http://localhost:5000
 
-# Geoapify API Key (Required for maps and location search)
-VITE_GEOAPIFY_API_KEY=your-geoapify-api-key-here
+# Google Maps API Key (Required for maps and location search)
+VITE_GOOGLE_MAPS_API_KEY=your-google-maps-api-key-here
 ```
 
 ---
@@ -160,21 +160,24 @@ CLOUDINARY_API_SECRET=abcdefghijklmnopqrstuvwxyz123456
 
 ---
 
-### 4. Geoapify API Key ⭐ Required (for maps)
+### 4. Google Maps API Key ⭐ Required (for maps)
 
-**Get from Geoapify:**
-1. Go to [myprojects.geoapify.com](https://myprojects.geoapify.com/)
-2. Sign up (free tier: 3,000 requests/day)
-3. Create a new project
-4. Go to **"API Keys"** section
-5. Copy your API key
+**Get from Google Cloud Console:**
+1. Go to [console.cloud.google.com](https://console.cloud.google.com)
+2. Create a new project (or select existing)
+3. Go to **APIs & Services → Library**
+4. Enable:
+   - **Maps JavaScript API**
+   - **Places API**
+   - **Geocoding API**
+5. Go to **APIs & Services → Credentials**
+6. Click **\"Create credentials\" → \"API key\"**
+7. Copy your API key
 
-**Free Tier Includes:**
-- 3,000 requests/day
-- Maps, Geocoding, Autocomplete
-- No credit card required
+**(Recommended) Restrict your key:**
+- Under **Key restrictions**, restrict by HTTP referrers (your localhost / production domain)
 
-**Add to:** `client/.env` → `VITE_GEOAPIFY_API_KEY=...`
+**Add to:** `client/.env` → `VITE_GOOGLE_MAPS_API_KEY=...`
 
 **Note:** Map credentials are **only needed in frontend**, not backend!
 
@@ -242,7 +245,7 @@ CLOUDINARY_API_SECRET=your-api-secret
 ### `client/.env` (Minimum):
 ```env
 VITE_API_URL=http://localhost:5000
-VITE_GEOAPIFY_API_KEY=your-geoapify-api-key
+VITE_GOOGLE_MAPS_API_KEY=your-google-maps-api-key
 ```
 
 **Note:** OAuth providers (Google/GitHub) are **optional**. Users can still register with email/password.
@@ -280,7 +283,7 @@ npm run dev
 
 **❌ Common Errors:**
 - `API errors` → Check `VITE_API_URL` matches backend port
-- `Map not loading` → Check `VITE_GEOAPIFY_API_KEY` is set
+- `Map not loading` → Check `VITE_GOOGLE_MAPS_API_KEY` is set and valid
 - `CORS errors` → Verify `CLIENT_URL` in `server/.env` matches frontend URL
 
 ---
@@ -311,7 +314,7 @@ npm run dev
 ### Frontend (`client/.env`)
 - [ ] Copied `env.example` to `.env`
 - [ ] Added `VITE_API_URL=http://localhost:5000`
-- [ ] Added `VITE_GEOAPIFY_API_KEY` (from Geoapify)
+- [ ] Added `VITE_GOOGLE_MAPS_API_KEY` (from Google Cloud)
 
 ### Testing
 - [ ] Backend starts without errors

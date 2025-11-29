@@ -11,6 +11,7 @@ export const initSocket = (userId: string) => {
     transports: ['websocket'],
     reconnectionAttempts: 5,
     reconnectionDelay: 1000,
+    autoConnect: true,
   });
 
   socket.on('connect', () => {
@@ -20,6 +21,15 @@ export const initSocket = (userId: string) => {
 
   socket.on('disconnect', () => {
     console.log('Socket disconnected');
+  });
+
+  socket.on('connect_error', (error) => {
+    console.warn('Socket connection error:', error.message);
+    // Silently handle connection errors - don't show to user
+  });
+
+  socket.on('reconnect_failed', () => {
+    console.warn('Socket reconnection failed - server may be offline');
   });
 
   return socket;

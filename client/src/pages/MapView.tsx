@@ -1,18 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, Package, X } from 'lucide-react';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
 import api from '../lib/api';
 import toast from 'react-hot-toast';
 
-// Fix for default marker icon in Leaflet
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-});
+declare global {
+  interface Window {
+    google: typeof google | undefined;
+  }
+}
 
 interface FoodListing {
   _id: string;
@@ -33,14 +29,24 @@ interface FoodListing {
 export default function MapView() {
   const navigate = useNavigate();
   const mapContainer = useRef<HTMLDivElement>(null);
-  const map = useRef<L.Map | null>(null);
-  const markers = useRef<L.Marker[]>([]);
+  const map = useRef<google.maps.Map | null>(null);
+  const markers = useRef<google.maps.Marker[]>([]);
   const [listings, setListings] = useState<FoodListing[]>([]);
   const [selectedListing, setSelectedListing] = useState<FoodListing | null>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [mapLoaded, setMapLoaded] = useState(false);
 
-  const GEOAPIFY_API_KEY = import.meta.env.VITE_GEOAPIFY_API_KEY || '';
+  const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
+
+  // Load Google Maps script
+  useEffect(() => {
+    if (window.google || !GOOGLE_MAPS_API_KEY) return;
+
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`;
+    script.async = true;
+    script.defer = true;
+    document.head.appendChild(script);
+  }, [GOOGLE_MAPS_API_KEY]);
 
   // Get user location
   useEffect(() => {
@@ -55,58 +61,43 @@ export default function MapView() {
         (error) => {
           console.error('Error getting location:', error);
           // Default to Delhi, India
-          setUserLocation({ lat: 28.6139, lng: 77.2090 });
+          setUserLocation({ lat: 28.6139, lng: 77.209 });
         }
       );
     } else {
-      setUserLocation({ lat: 28.6139, lng: 77.2090 });
+      setUserLocation({ lat: 28.6139, lng: 77.209 });
     }
   }, []);
 
   // Initialize map
   useEffect(() => {
-    if (!mapContainer.current || !userLocation || !GEOAPIFY_API_KEY) return;
+    if (!mapContainer.current || !userLocation || !window.google || map.current) return;
 
-    // Initialize map
-    map.current = L.map(mapContainer.current, {
-      center: [userLocation.lat, userLocation.lng],
+    map.current = new window.google.maps.Map(mapContainer.current, {
+      center: userLocation,
       zoom: 12,
+      mapTypeControl: false,
+      streetViewControl: false,
+      fullscreenControl: true,
     });
 
-    // Add Geoapify tile layer
-    L.tileLayer(`https://maps.geoapify.com/v1/tile/dark-matter/{z}/{x}/{y}.png?apiKey=${GEOAPIFY_API_KEY}`, {
-      attribution: 'Powered by <a href="https://www.geoapify.com/" target="_blank">Geoapify</a>',
-      maxZoom: 20,
-    }).addTo(map.current);
-
     // Add user location marker
-    L.marker([userLocation.lat, userLocation.lng], {
-      icon: L.icon({
-        iconUrl: 'data:image/svg+xml;base64,' + btoa(`
-          <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="16" cy="16" r="12" fill="#10b981" stroke="#ffffff" stroke-width="3"/>
-          </svg>
-        `),
-        iconSize: [32, 32],
-        iconAnchor: [16, 16],
-      }),
-    })
-      .addTo(map.current)
-      .bindPopup('You are here');
+    new window.google.maps.Marker({
+      position: userLocation,
+      map: map.current,
+      title: 'You are here',
+    });
 
-    setMapLoaded(true);
     fetchListings();
 
     return () => {
-      // Clean up markers
-      markers.current.forEach((marker) => marker.remove());
+      markers.current.forEach((m) => m.setMap(null));
       markers.current = [];
       if (map.current) {
-        map.current.remove();
         map.current = null;
       }
     };
-  }, [userLocation, GEOAPIFY_API_KEY]);
+  }, [userLocation]);
 
   const fetchListings = async () => {
     try {
@@ -115,32 +106,24 @@ export default function MapView() {
       });
       setListings(response.data.listings);
 
-      // Clear existing markers
-      markers.current.forEach((marker) => marker.remove());
+      markers.current.forEach((m) => m.setMap(null));
       markers.current = [];
 
-      // Add markers for each listing
       response.data.listings.forEach((listing: FoodListing) => {
         if (map.current && listing.location.coordinates) {
           const [lng, lat] = listing.location.coordinates;
+          const position = { lat, lng };
 
-          // Create custom marker
-          const marker = L.marker([lat, lng], {
-            icon: L.icon({
-              iconUrl: 'data:image/svg+xml;base64,' + btoa(`
-                <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="20" cy="20" r="16" fill="#14b8a6" stroke="#ffffff" stroke-width="3"/>
-                </svg>
-              `),
-              iconSize: [40, 40],
-              iconAnchor: [20, 20],
-            }),
-          }).addTo(map.current);
+          const marker = new window.google.maps.Marker({
+            position,
+            map: map.current,
+            title: listing.title,
+          });
 
-          // Add click listener
-          marker.on('click', () => {
+          marker.addListener('click', () => {
             setSelectedListing(listing);
-            map.current?.setView([lat, lng], 14);
+            map.current?.setCenter(position);
+            map.current?.setZoom(14);
           });
 
           markers.current.push(marker);
@@ -174,10 +157,10 @@ export default function MapView() {
 
       {/* Map Container */}
       <div className="flex-1 relative">
-        {!GEOAPIFY_API_KEY ? (
+        {!GOOGLE_MAPS_API_KEY ? (
           <div className="w-full h-full flex items-center justify-center bg-slate-900">
             <p className="text-red-400 text-center px-4">
-              Geoapify API key is missing. Please set VITE_GEOAPIFY_API_KEY in your .env file
+              Google Maps API key is missing. Please set VITE_GOOGLE_MAPS_API_KEY in your .env file
             </p>
           </div>
         ) : (
@@ -239,3 +222,4 @@ export default function MapView() {
     </div>
   );
 }
+
